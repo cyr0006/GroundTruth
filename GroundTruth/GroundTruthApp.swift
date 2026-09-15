@@ -1,0 +1,17 @@
+//
+//  GroundTruthApp.swift
+//  GroundTruth
+//
+//  Created by Aryan Cyrus  on 15/9/2026.
+//
+
+import SwiftUI
+
+@main
+struct GroundTruthApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}
