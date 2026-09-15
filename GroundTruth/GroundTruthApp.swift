@@ -11,7 +11,7 @@ import SwiftUI
 struct GroundTruthApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainTabView()
         }
     }
 }
