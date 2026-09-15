@@ -28,8 +28,11 @@ struct MapView: View {
         NavigationStack {
             ZStack(alignment: .top) {
                 Map(position: $cameraPosition) {
+                    let lat: CLLocationDegrees = 37.90974
+                    let long: CLLocationDegrees = 145.13173
+                    let testCoordinate: CLLocationCoordinate2D = CLLocationCoordinate2D(latitude: lat, longitude: long)
                     if let selectedAddress {
-                        Marker(selectedAddress, systemImage: "mappin")
+                        Marker(selectedAddress, systemImage: "mappin", coordinate: testCoordinate)
                             .tint(.red)
                     }
                 }
