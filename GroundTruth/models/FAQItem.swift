@@ -2,7 +2,7 @@
 //  FAQItem.swift
 //  GroundTruth
 //
-//  Static information library model - technical FAQ entries.
+//  Created by Aryan Cyrus  on 15/9/2026.
 //
 
 import Foundation

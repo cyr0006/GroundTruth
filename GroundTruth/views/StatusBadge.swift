@@ -2,7 +2,7 @@
 //  StatusBadge.swift
 //  GroundTruth
 //
-//  Small shared component used to display a Project's status.
+//  Created by Aryan Cyrus  on 15/9/2026.
 //
 
 import SwiftUI

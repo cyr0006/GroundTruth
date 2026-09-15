@@ -2,7 +2,7 @@
 //  HomeView.swift
 //  GroundTruth
 //
-//  Landing screen - quick actions and an overview of active projects.
+//  Created by Aryan Cyrus  on 15/9/2026.
 //
 
 import SwiftUI
@@ -29,14 +29,13 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Sections
-
+    //Sections
     private var welcomeHeader: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Welcome back, Aryan")
                 .font(.title2)
                 .fontWeight(.bold)
-            Text("Here's where your projects stand today.")
+            Text("Here's the latest on your current projects.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -92,7 +91,7 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Subviews
+// Subviews
 
 private struct QuickActionButton: View {
     let title: String
@@ -101,7 +100,7 @@ private struct QuickActionButton: View {
 
     var body: some View {
         Button {
-            // Placeholder action
+            // Some Placeholder action
         } label: {
             VStack(spacing: 8) {
                 Image(systemName: systemImage)

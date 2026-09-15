@@ -2,9 +2,7 @@
 //  ProjectsView.swift
 //  GroundTruth
 //
-//  Lists the user's projects and allows creating new ones.
-//  Persistence (SwiftData) will be added later - this view currently
-//  works off an in-memory sample list.
+//  Created by Aryan Cyrus  on 15/9/2026.
 //
 
 import SwiftUI
@@ -79,8 +77,6 @@ private struct ProjectRow: View {
     }
 }
 
-// MARK: - Detail
-
 private struct ProjectDetailView: View {
     let project: Project
 
@@ -126,7 +122,6 @@ private struct ProjectDetailView: View {
     }
 }
 
-// MARK: - New Project
 
 private struct NewProjectView: View {
     @Environment(\.dismiss) private var dismiss

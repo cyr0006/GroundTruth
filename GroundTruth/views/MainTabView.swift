@@ -2,7 +2,7 @@
 //  MainTabView.swift
 //  GroundTruth
 //
-//  Root view - bottom tab bar navigation between the app's main sections.
+//  Created by Aryan Cyrus  on 15/9/2026.
 //
 
 import SwiftUI

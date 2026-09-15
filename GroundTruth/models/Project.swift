@@ -2,13 +2,13 @@
 //  Project.swift
 //  GroundTruth
 //
-//  Basic model used to drive placeholder UI before SwiftData persistence
-//  is wired up.
+//  Created by Aryan Cyrus  on 15/9/2026.
 //
 
 import Foundation
+import FirebaseFirestore
 
-enum ProjectStatus: String, CaseIterable {
+enum ProjectStatus: String, CaseIterable, Codable, Identifiable {
     case planning = "Planning"
     case permits = "Permits"
     case construction = "Construction"
@@ -22,10 +22,14 @@ enum ProjectStatus: String, CaseIterable {
         case .complete: return "green"
         }
     }
+    
+    var id: String {rawValue}
 }
 
-struct Project: Identifiable, Hashable {
-    let id = UUID()
+struct Project: Hashable, Codable {
+    static let collectionName = "projects"
+    
+    @DocumentID private var projID: String?
     var name: String
     var projectDescription: String
     var address: String
@@ -33,6 +37,21 @@ struct Project: Identifiable, Hashable {
     var progress: Double // 0.0 - 1.0
     var tasksCompleted: Int
     var totalTasks: Int
+    
+    var id: String?{
+        projID ?? ""
+    }
+    
+    init(projID: String? = nil, name: String, projectDescription: String, address: String, status: ProjectStatus, progress: Double, tasksCompleted: Int, totalTasks: Int) {
+        self.projID = projID
+        self.name = name
+        self.projectDescription = projectDescription
+        self.address = address
+        self.status = status
+        self.progress = progress
+        self.tasksCompleted = tasksCompleted
+        self.totalTasks = totalTasks
+    }
 }
 
 extension Project {
@@ -58,7 +77,7 @@ extension Project {
         Project(
             name: "Kitchen Renovation",
             projectDescription: "Internal renovation, no structural changes.",
-            address: "45 High Street, Kew VIC 3101",
+            address: "21 Emerald Lake Rd, Emerald VIC 3782",
             status: .construction,
             progress: 0.75,
             tasksCompleted: 9,

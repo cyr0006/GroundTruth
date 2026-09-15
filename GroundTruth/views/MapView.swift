@@ -2,10 +2,7 @@
 //  MapView.swift
 //  GroundTruth
 //
-//  Interactive map with address search and toggles for planning
-//  zone / overlay layers. Layer rendering will be wired up to the
-//  Vicmap Planning Data service later - for now the toggles just
-//  drive placeholder UI state.
+//  Created by Aryan Cyrus  on 15/9/2026.
 //
 
 import SwiftUI

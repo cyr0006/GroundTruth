@@ -2,8 +2,7 @@
 //  FAQView.swift
 //  GroundTruth
 //
-//  Static information library - technical FAQ covering common
-//  construction proposals and planning overlay definitions.
+//  Created by Aryan Cyrus  on 15/9/2026.
 //
 
 import SwiftUI

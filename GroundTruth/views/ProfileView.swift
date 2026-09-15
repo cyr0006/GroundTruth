@@ -2,8 +2,7 @@
 //  ProfileView.swift
 //  GroundTruth
 //
-//  Displays user profile information. Authentication has not been
-//  implemented yet, so this shows placeholder/local data only.
+//  Created by Aryan Cyrus  on 15/9/2026.
 //
 
 import SwiftUI
