@@ -20,16 +20,14 @@ struct MapView: View {
     @State private var showZonesLayer = true
     @State private var showOverlaysLayer = false
     @State private var selectedAddress: String?
+    @State private var selectedCoordinate: CLLocationCoordinate2D?
 
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
                 Map(position: $cameraPosition) {
-                    let lat: CLLocationDegrees = 37.90974
-                    let long: CLLocationDegrees = 145.13173
-                    let testCoordinate: CLLocationCoordinate2D = CLLocationCoordinate2D(latitude: lat, longitude: long)
-                    if let selectedAddress {
-                        Marker(selectedAddress, systemImage: "mappin", coordinate: testCoordinate)
+                    if let selectedAddress, let selectedCoordinate {
+                        Marker(selectedAddress, systemImage: "mappin", coordinate: selectedCoordinate)
                             .tint(.red)
                     }
                 }
@@ -68,22 +66,21 @@ struct MapView: View {
     }
 
     private var searchBar: some View {
-        HStack {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-            TextField("Search an address", text: $searchText)
-                .textFieldStyle(.plain)
-                .onSubmit {
-                    selectedAddress = searchText
+        AddressSearchField(text: $searchText, placeholder: "Search an address", leadingIcon: "magnifyingglass") { address, coordinate in
+            selectedAddress = address
+            selectedCoordinate = coordinate
+            if let coordinate {
+                withAnimation {
+                    cameraPosition = .region(
+                        MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))
+                    )
                 }
-            if !searchText.isEmpty {
-                Button {
-                    searchText = ""
-                    selectedAddress = nil
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
+            }
+        }
+        .onChange(of: searchText) { _, newValue in
+            if newValue.isEmpty {
+                selectedAddress = nil
+                selectedCoordinate = nil
             }
         }
         .padding(10)

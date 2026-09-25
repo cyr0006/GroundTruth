@@ -447,7 +447,7 @@ private struct NewProjectView: View {
                 }
 
                 Section("Property") {
-                    TextField("Address", text: $address)
+                    AddressSearchField(text: $address, placeholder: "Address")
                 }
 
                 Section("Roadmap & Checklist") {
@@ -613,7 +613,7 @@ private struct EditProjectView: View {
                 }
 
                 Section("Property") {
-                    TextField("Address", text: $address)
+                    AddressSearchField(text: $address, placeholder: "Address")
                 }
             }
             .navigationTitle("Edit Project")
