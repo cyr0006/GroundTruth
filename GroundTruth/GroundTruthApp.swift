@@ -7,6 +7,8 @@
 
 import SwiftUI
 import FirebaseCore
+import FirebaseAppCheck
+
 
 final class AppDelegate: NSObject, UIApplicationDelegate{
     func application(
@@ -23,6 +25,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate{
 @main
 struct GroundTruthApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
+    
+    init() {
+      let providerFactory = AppCheckDebugProviderFactory()
+      AppCheck.setAppCheckProviderFactory(providerFactory)
+      FirebaseApp.configure()
+    }
     
     var body: some Scene {
         WindowGroup {
