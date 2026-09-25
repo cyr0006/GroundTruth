@@ -20,10 +20,12 @@ struct MainTabView: View {
                     Label("Map", systemImage: "map.fill")
                 }
 
-            ProjectsView()
-                .tabItem {
-                    Label("Projects", systemImage: "hammer.fill")
-                }
+            NavigationStack {
+                ProjectsView()
+            }
+            .tabItem {
+                Label("Projects", systemImage: "hammer.fill")
+            }
 
             FAQView()
                 .tabItem {
