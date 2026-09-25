@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject private var projectStore: ProjectStore
+    @EnvironmentObject private var authService: AuthService
     @State private var notificationsEnabled = true
 
     var body: some View {
@@ -69,7 +70,7 @@ struct ProfileView: View {
 
                 Section {
                     Button(role: .destructive) {
-                        // Placeholder - no auth system yet
+                        signOut()
                     } label: {
                         Text("Sign Out")
                     }
@@ -79,6 +80,14 @@ struct ProfileView: View {
             .navigationTitle("Profile")
         }
     }
+    
+    private func signOut() {
+         do {
+             try authService.signOut()
+         } catch {
+             print("Failed to sign out: \(error)")
+         }
+     }
 }
 
 #Preview {
