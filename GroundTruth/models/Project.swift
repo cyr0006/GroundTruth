@@ -26,7 +26,7 @@ enum ProjectStatus: String, CaseIterable, Codable, Identifiable {
     var id: String {rawValue}
 }
 
-struct Project: Hashable, Codable {
+struct Project: Identifiable,Hashable, Codable {
     static let collectionName = "projects"
     
     @DocumentID private var projID: String?
