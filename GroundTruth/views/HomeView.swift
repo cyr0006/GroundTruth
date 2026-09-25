@@ -11,6 +11,10 @@ import FirebaseAuth
 struct HomeView: View {
     @EnvironmentObject private var projectStore: ProjectStore
     @EnvironmentObject private var authService: AuthService
+    
+    @State private var service = GeminiService()
+    @State private var output = "Tap the button to test."
+    @State private var isLoading = false
 
     var body: some View {
         NavigationStack {
@@ -92,10 +96,35 @@ struct HomeView: View {
             Text("Properties with a Heritage Overlay may need planning approval even for minor exterior changes. Check your property on the Map tab.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+            
+            Button("Ask Gemini") {
+                Task {
+                    isLoading = true
+                    do {
+                        output = try await service.getModelResponse(prompt: "Write a story about a magic backpack.")
+                    } catch {
+                        output = "Error: \(error)"
+                        print("Gemini failed: \(error)")
+                    }
+                    isLoading = false
+                }
+            }
+            .disabled(isLoading)
+
+            if isLoading {
+                ProgressView()
+            }
+
+            ScrollView {
+                Text(output)
+            }
+    
         }
+        
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
+        
     }
     
     private var userName: String {

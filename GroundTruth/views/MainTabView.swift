@@ -14,7 +14,7 @@ struct MainTabView: View {
                 .tabItem {
                     Label("Home", systemImage: "house.fill")
                 }
-
+            
             MapView()
                 .tabItem {
                     Label("Map", systemImage: "map.fill")

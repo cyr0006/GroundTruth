@@ -15,6 +15,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate{
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
+            let providerFactory = AppCheckDebugProviderFactory()
+            AppCheck.setAppCheckProviderFactory(providerFactory)
             FirebaseApp.configure()
         }
         return true
@@ -25,12 +27,6 @@ final class AppDelegate: NSObject, UIApplicationDelegate{
 @main
 struct GroundTruthApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
-    
-    init() {
-      let providerFactory = AppCheckDebugProviderFactory()
-      AppCheck.setAppCheckProviderFactory(providerFactory)
-      FirebaseApp.configure()
-    }
     
     var body: some Scene {
         WindowGroup {

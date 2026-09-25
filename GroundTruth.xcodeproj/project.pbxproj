@@ -10,6 +10,8 @@
 		4E4D6DB730590A6F002CE047 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 4E4D6DB630590A6F002CE047 /* FirebaseAuth */; };
 		4E4D6DB930590A6F002CE047 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 4E4D6DB830590A6F002CE047 /* FirebaseFirestore */; };
 		4E4D6DBB30590A6F002CE047 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 4E4D6DBA30590A6F002CE047 /* FirebaseStorage */; };
+		4E8CFCD53066710A00D88526 /* FirebaseAILogic in Frameworks */ = {isa = PBXBuildFile; productRef = 4E8CFCD43066710A00D88526 /* FirebaseAILogic */; };
+		4E8CFCD73066711600D88526 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 4E8CFCD63066711600D88526 /* FirebaseAppCheck */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,8 +31,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4E8CFCD53066710A00D88526 /* FirebaseAILogic in Frameworks */,
 				4E4D6DB730590A6F002CE047 /* FirebaseAuth in Frameworks */,
 				4E4D6DB930590A6F002CE047 /* FirebaseFirestore in Frameworks */,
+				4E8CFCD73066711600D88526 /* FirebaseAppCheck in Frameworks */,
 				4E4D6DBB30590A6F002CE047 /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -42,6 +46,7 @@
 			isa = PBXGroup;
 			children = (
 				4E4D6D913058FA30002CE047 /* GroundTruth */,
+				4E8CFCD33066710A00D88526 /* Frameworks */,
 				4E4D6D903058FA30002CE047 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -52,6 +57,13 @@
 				4E4D6D8F3058FA30002CE047 /* GroundTruth.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		4E8CFCD33066710A00D88526 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -77,6 +89,8 @@
 				4E4D6DB630590A6F002CE047 /* FirebaseAuth */,
 				4E4D6DB830590A6F002CE047 /* FirebaseFirestore */,
 				4E4D6DBA30590A6F002CE047 /* FirebaseStorage */,
+				4E8CFCD43066710A00D88526 /* FirebaseAILogic */,
+				4E8CFCD63066711600D88526 /* FirebaseAppCheck */,
 			);
 			productName = GroundTruth;
 			productReference = 4E4D6D8F3058FA30002CE047 /* GroundTruth.app */;
@@ -370,6 +384,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4E4D6DB530590A6F002CE047 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
+		};
+		4E8CFCD43066710A00D88526 /* FirebaseAILogic */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4E4D6DB530590A6F002CE047 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAILogic;
+		};
+		4E8CFCD63066711600D88526 /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4E4D6DB530590A6F002CE047 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
