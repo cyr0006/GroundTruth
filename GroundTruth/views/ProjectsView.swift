@@ -12,49 +12,52 @@ struct ProjectsView: View {
     @EnvironmentObject private var projectStore: ProjectStore
     @State private var isShowingNewProject = false
 
+    // No NavigationStack here: this view is reused both as a tab root (MainTabView,
+    // which supplies its own NavigationStack) and as a pushed destination (HomeView's
+    // "See all" link, which pushes it onto its own NavigationStack). Nesting a second
+    // NavigationStack inside the latter breaks `navigationDestination` and was causing
+    // the white-screen-then-pop-back bug when drilling into a project from "See all".
     var body: some View {
-        NavigationStack {
-            Group {
-                if projectStore.isLoading && projectStore.projects.isEmpty {
-                    ProgressView("Loading your projects...")
-                } else if projectStore.projects.isEmpty {
-                    ContentUnavailableView(
-                        "No Projects Yet",
-                        systemImage: "hammer",
-                        description: Text("Create your first project to get a roadmap and checklist.")
-                    )
-                } else {
-                    List {
-                        ForEach(projectStore.projects) { project in
-                            NavigationLink(value: project) {
-                                ProjectRow(project: project)
-                            }
+        Group {
+            if projectStore.isLoading && projectStore.projects.isEmpty {
+                ProgressView("Loading your projects...")
+            } else if projectStore.projects.isEmpty {
+                ContentUnavailableView(
+                    "No Projects Yet",
+                    systemImage: "hammer",
+                    description: Text("Create your first project to get a roadmap and checklist.")
+                )
+            } else {
+                List {
+                    ForEach(projectStore.projects) { project in
+                        NavigationLink(value: project) {
+                            ProjectRow(project: project)
                         }
                     }
-                    .listStyle(.insetGrouped)
+                }
+                .listStyle(.insetGrouped)
+            }
+        }
+        .navigationTitle("Projects")
+        .navigationDestination(for: Project.self) { project in
+            ProjectDetailView(projectId: project.id ?? "")
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isShowingNewProject = true
+                } label: {
+                    Image(systemName: "plus")
                 }
             }
-            .navigationTitle("Projects")
-            .navigationDestination(for: Project.self) { project in
-                ProjectDetailView(projectId: project.id ?? "")
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isShowingNewProject = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                }
-            }
-            .sheet(isPresented: $isShowingNewProject) {
-                NewProjectView()
-            }
-            .alert("Couldn't Load Projects", isPresented: projectErrorIsPresented) {
-                Button("Ok", role: .cancel) { projectStore.clearError() }
-            } message: {
-                Text(projectStore.errorMessage ?? "Please try again.")
-            }
+        }
+        .sheet(isPresented: $isShowingNewProject) {
+            NewProjectView()
+        }
+        .alert("Couldn't Load Projects", isPresented: projectErrorIsPresented) {
+            Button("Ok", role: .cancel) { projectStore.clearError() }
+        } message: {
+            Text(projectStore.errorMessage ?? "Please try again.")
         }
     }
 
@@ -665,6 +668,8 @@ private struct EditProjectView: View {
 }
 
 #Preview {
-    ProjectsView()
-        .environmentObject(ProjectStore())
+    NavigationStack {
+        ProjectsView()
+    }
+    .environmentObject(ProjectStore())
 }
