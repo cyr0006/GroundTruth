@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import FirebaseAI
+import FirebaseAILogic
 
 /// Builds a Gemini `GenerativeModel` grounded in one project's details via a
 /// system instruction, so every reply in that project's chat is already aware

@@ -4,7 +4,7 @@
 //
 
 import Foundation
-import FirebaseAI
+import FirebaseAILogic
 
 @MainActor
 final class ProjectChatViewModel: ObservableObject {
