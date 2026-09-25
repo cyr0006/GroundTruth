@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct HomeView: View {
     @EnvironmentObject private var projectStore: ProjectStore
+    @EnvironmentObject private var authService: AuthService
 
     var body: some View {
         NavigationStack {
@@ -32,7 +34,7 @@ struct HomeView: View {
     //Sections
     private var welcomeHeader: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Welcome back, Aryan")
+            Text("Welcome back, \(userName)")
                 .font(.title2)
                 .fontWeight(.bold)
             Text("Here's the latest on your current projects.")
@@ -94,6 +96,10 @@ struct HomeView: View {
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
+    }
+    
+    private var userName: String {
+        authService.user?.displayName ?? "User"
     }
 }
 
