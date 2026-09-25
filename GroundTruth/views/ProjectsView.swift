@@ -157,9 +157,7 @@ private struct ProjectDetailView: View {
 
                     Section("AI Chat") {
                         NavigationLink {
-                            Text("AI project chat coming soon.")
-                                .foregroundStyle(.secondary)
-                                .navigationTitle("AI Assistant")
+                            ProjectChatView(project: project)
                         } label: {
                             Label("Ask about this project", systemImage: "sparkles")
                         }
