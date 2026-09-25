@@ -7,6 +7,7 @@
 
 import Foundation
 import FirebaseFirestore
+import FirebaseStorage
 internal import Combine
 
 @MainActor
@@ -14,13 +15,15 @@ final class ProjectStore: ObservableObject{
     @Published private(set) var projects: [Project] = []
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
-    
+
     private let database: Firestore;
+    private let storage: Storage
     private var listener: ListenerRegistration?
     private var currentUserId: String?
 
-    init(database: Firestore = .firestore()){
+    init(database: Firestore = .firestore(), storage: Storage = .storage()){
         self.database = database
+        self.storage = storage
     }
 
     /// Starts listening to just the signed-in user's projects. Call `stopListening()`
@@ -72,7 +75,7 @@ final class ProjectStore: ObservableObject{
         errorMessage = nil
     }
 
-    func createProject(name: String, projectDescription: String, address: String, status: ProjectStatus = .planning, progress: Double = 0, tasksCompleted: Int = 0, totalTasks: Int = 0) async throws {
+    func createProject(name: String, projectDescription: String, address: String, status: ProjectStatus = .planning, progress: Double = 0, tasksCompleted: Int = 0, totalTasks: Int = 0, noteTexts: [String] = [], pendingDocuments: [PendingProjectDocument] = []) async throws {
         guard let ownerId = currentUserId else {
             throw AppError.notSignedIn
         }
@@ -98,8 +101,20 @@ final class ProjectStore: ObservableObject{
             throw AppError.invalidForm("Project description must be 600 characters or fewer")
         }
 
+        // The Firestore document ID is generated client-side so we can use it as the
+        // Storage folder for any attached documents before the project document exists.
+        let reference = database.collection(Project.collectionName).document()
+        let projectId = reference.documentID
+
+        let uploadedDocuments = try await upload(pendingDocuments, ownerId: ownerId, projectId: projectId)
+        let notes = noteTexts
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .map { ProjectNote(id: UUID().uuidString, text: $0, createdAt: Date()) }
+
         //initialising Project Object
         let project = Project(
+            projID: projectId,
             ownerId: ownerId,
             name: cleanedName,
             projectDescription: cleanedProjDesc,
@@ -107,11 +122,95 @@ final class ProjectStore: ObservableObject{
             status: status,
             progress: progress,
             tasksCompleted: tasksCompleted,
-            totalTasks: totalTasks
+            totalTasks: totalTasks,
+            documents: uploadedDocuments,
+            notes: notes
         )
 
         let data = try Firestore.Encoder().encode(project)
-        let reference  = database.collection(Project.collectionName).document()
         try await reference.setData(data)
+    }
+
+    func addDocument(_ pending: PendingProjectDocument, to project: Project) async throws {
+        guard let projectId = project.id, !projectId.isEmpty else {
+            throw AppError.projectNotFound
+        }
+
+        let uploaded = try await upload(pending, ownerId: project.ownerId, projectId: projectId)
+        var updatedDocuments = project.documents
+        updatedDocuments.append(uploaded)
+        try await updateDocumentsField(updatedDocuments, projectId: projectId)
+    }
+
+    func deleteDocument(_ document: ProjectDocument, from project: Project) async throws {
+        guard let projectId = project.id, !projectId.isEmpty else {
+            throw AppError.projectNotFound
+        }
+
+        try await storage.reference(withPath: document.storagePath).delete()
+        let updatedDocuments = project.documents.filter { $0.id != document.id }
+        try await updateDocumentsField(updatedDocuments, projectId: projectId)
+    }
+
+    func addNote(text: String, to project: Project) async throws {
+        guard let projectId = project.id, !projectId.isEmpty else {
+            throw AppError.projectNotFound
+        }
+
+        let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else {
+            throw AppError.invalidForm("Enter some note text.")
+        }
+
+        var updatedNotes = project.notes
+        updatedNotes.append(ProjectNote(id: UUID().uuidString, text: cleaned, createdAt: Date()))
+        try await updateNotesField(updatedNotes, projectId: projectId)
+    }
+
+    func deleteNote(_ note: ProjectNote, from project: Project) async throws {
+        guard let projectId = project.id, !projectId.isEmpty else {
+            throw AppError.projectNotFound
+        }
+
+        let updatedNotes = project.notes.filter { $0.id != note.id }
+        try await updateNotesField(updatedNotes, projectId: projectId)
+    }
+
+    private func updateDocumentsField(_ documents: [ProjectDocument], projectId: String) async throws {
+        let encoded = try documents.map { try Firestore.Encoder().encode($0) }
+        try await database.collection(Project.collectionName).document(projectId)
+            .updateData(["documents": encoded])
+    }
+
+    private func updateNotesField(_ notes: [ProjectNote], projectId: String) async throws {
+        let encoded = try notes.map { try Firestore.Encoder().encode($0) }
+        try await database.collection(Project.collectionName).document(projectId)
+            .updateData(["notes": encoded])
+    }
+
+    private func upload(_ pendingDocuments: [PendingProjectDocument], ownerId: String, projectId: String) async throws -> [ProjectDocument] {
+        var uploaded: [ProjectDocument] = []
+        for pending in pendingDocuments {
+            uploaded.append(try await upload(pending, ownerId: ownerId, projectId: projectId))
+        }
+        return uploaded
+    }
+
+    private func upload(_ pending: PendingProjectDocument, ownerId: String, projectId: String) async throws -> ProjectDocument {
+        let docId = UUID().uuidString
+        let storagePath = "projects/\(ownerId)/\(projectId)/documents/\(docId)-\(pending.fileName)"
+        let storageRef = storage.reference(withPath: storagePath)
+
+        _ = try await storageRef.putDataAsync(pending.data)
+        let downloadURL = try await storageRef.downloadURL()
+
+        return ProjectDocument(
+            id: docId,
+            fileName: pending.fileName,
+            storagePath: storagePath,
+            downloadURL: downloadURL.absoluteString,
+            uploadedAt: Date(),
+            fileSizeBytes: Int64(pending.data.count)
+        )
     }
 }

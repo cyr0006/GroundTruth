@@ -26,6 +26,32 @@ enum ProjectStatus: String, CaseIterable, Codable, Identifiable {
     var id: String {rawValue}
 }
 
+/// Metadata for a file uploaded to Firebase Storage for a project. The file bytes
+/// themselves live in Storage at `storagePath` — this struct is just what's stored
+/// on the Firestore project document.
+struct ProjectDocument: Identifiable, Hashable, Codable {
+    var id: String
+    var fileName: String
+    var storagePath: String
+    var downloadURL: String
+    var uploadedAt: Date
+    var fileSizeBytes: Int64
+}
+
+struct ProjectNote: Identifiable, Hashable, Codable {
+    var id: String
+    var text: String
+    var createdAt: Date
+}
+
+/// A file picked on-device but not yet uploaded — the input to `ProjectStore`'s
+/// upload methods. Not itself stored anywhere.
+struct PendingProjectDocument: Identifiable {
+    let id = UUID()
+    let fileName: String
+    let data: Data
+}
+
 struct Project: Identifiable,Hashable, Codable {
     static let collectionName = "projects"
 
@@ -38,12 +64,14 @@ struct Project: Identifiable,Hashable, Codable {
     var progress: Double // 0.0 - 1.0
     var tasksCompleted: Int
     var totalTasks: Int
+    var documents: [ProjectDocument]
+    var notes: [ProjectNote]
 
     var id: String?{
         projID ?? ""
     }
 
-    init(projID: String? = nil, ownerId: String, name: String, projectDescription: String, address: String, status: ProjectStatus, progress: Double, tasksCompleted: Int, totalTasks: Int) {
+    init(projID: String? = nil, ownerId: String, name: String, projectDescription: String, address: String, status: ProjectStatus, progress: Double, tasksCompleted: Int, totalTasks: Int, documents: [ProjectDocument] = [], notes: [ProjectNote] = []) {
         self.projID = projID
         self.ownerId = ownerId
         self.name = name
@@ -53,6 +81,8 @@ struct Project: Identifiable,Hashable, Codable {
         self.progress = progress
         self.tasksCompleted = tasksCompleted
         self.totalTasks = totalTasks
+        self.documents = documents
+        self.notes = notes
     }
 }
 
