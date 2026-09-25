@@ -12,7 +12,7 @@ import FirebaseAILogic
 /// system instruction, so every reply in that project's chat is already aware
 /// of its status, roadmap, notes, and documents without the user repeating them.
 enum GeminiService {
-    private static let modelName = "gemini-2.5-flash"
+    private static let modelName = "gemini-3.1-flash-lite"
 
     static func chatModel(for project: Project) -> GenerativeModel {
         let ai = FirebaseAI.firebaseAI(backend: .googleAI())

@@ -12,10 +12,6 @@ struct HomeView: View {
     @EnvironmentObject private var projectStore: ProjectStore
     @EnvironmentObject private var authService: AuthService
     
-    @State private var service = GeminiService()
-    @State private var output = "Tap the button to test."
-    @State private var isLoading = false
-
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -97,27 +93,7 @@ struct HomeView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             
-            Button("Ask Gemini") {
-                Task {
-                    isLoading = true
-                    do {
-                        output = try await service.getModelResponse(prompt: "Write a story about a magic backpack.")
-                    } catch {
-                        output = "Error: \(error)"
-                        print("Gemini failed: \(error)")
-                    }
-                    isLoading = false
-                }
-            }
-            .disabled(isLoading)
 
-            if isLoading {
-                ProgressView()
-            }
-
-            ScrollView {
-                Text(output)
-            }
     
         }
         
