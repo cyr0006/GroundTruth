@@ -44,6 +44,12 @@ struct ProjectNote: Identifiable, Hashable, Codable {
     var createdAt: Date
 }
 
+struct ProjectTask: Identifiable, Hashable, Codable {
+    var id: String
+    var title: String
+    var isCompleted: Bool
+}
+
 /// A file picked on-device but not yet uploaded — the input to `ProjectStore`'s
 /// upload methods. Not itself stored anywhere.
 struct PendingProjectDocument: Identifiable {
@@ -61,32 +67,44 @@ struct Project: Identifiable,Hashable, Codable {
     var projectDescription: String
     var address: String
     var status: ProjectStatus
-    var progress: Double // 0.0 - 1.0
-    var tasksCompleted: Int
-    var totalTasks: Int
     var documents: [ProjectDocument]
     var notes: [ProjectNote]
+    var tasks: [ProjectTask]
 
     var id: String?{
         projID ?? ""
     }
 
-    init(projID: String? = nil, ownerId: String, name: String, projectDescription: String, address: String, status: ProjectStatus, progress: Double, tasksCompleted: Int, totalTasks: Int, documents: [ProjectDocument] = [], notes: [ProjectNote] = []) {
+    // Derived from `tasks` rather than stored, so the roadmap checklist and the
+    // progress bar can never drift out of sync with each other.
+    var totalTasks: Int { tasks.count }
+    var tasksCompleted: Int { tasks.filter(\.isCompleted).count }
+    var progress: Double {
+        guard !tasks.isEmpty else { return 0 }
+        return Double(tasksCompleted) / Double(totalTasks)
+    }
+
+    init(projID: String? = nil, ownerId: String, name: String, projectDescription: String, address: String, status: ProjectStatus, documents: [ProjectDocument] = [], notes: [ProjectNote] = [], tasks: [ProjectTask] = []) {
         self.projID = projID
         self.ownerId = ownerId
         self.name = name
         self.projectDescription = projectDescription
         self.address = address
         self.status = status
-        self.progress = progress
-        self.tasksCompleted = tasksCompleted
-        self.totalTasks = totalTasks
         self.documents = documents
         self.notes = notes
+        self.tasks = tasks
     }
 }
 
 extension Project {
+    /// Builds `count` sample tasks with the first `completed` marked done.
+    private static func sampleTasks(completed: Int, count: Int) -> [ProjectTask] {
+        (0..<count).map { index in
+            ProjectTask(id: "sample-\(index)", title: "Sample step \(index + 1)", isCompleted: index < completed)
+        }
+    }
+
     static let sampleProjects: [Project] = [
         Project(
             ownerId: "preview-user",
@@ -94,9 +112,7 @@ extension Project {
             projectDescription: "New timber deck with pergola off the back of the house.",
             address: "12 Wattle Street, Camberwell VIC 3124",
             status: .permits,
-            progress: 0.4,
-            tasksCompleted: 4,
-            totalTasks: 10
+            tasks: sampleTasks(completed: 4, count: 10)
         ),
         Project(
             ownerId: "preview-user",
@@ -104,9 +120,7 @@ extension Project {
             projectDescription: "Secondary dwelling in the rear yard for extended family.",
             address: "8 Riverside Ave, Hawthorn VIC 3122",
             status: .planning,
-            progress: 0.15,
-            tasksCompleted: 2,
-            totalTasks: 14
+            tasks: sampleTasks(completed: 2, count: 14)
         ),
         Project(
             ownerId: "preview-user",
@@ -114,9 +128,7 @@ extension Project {
             projectDescription: "Internal renovation, no structural changes.",
             address: "21 Emerald Lake Rd, Emerald VIC 3782",
             status: .construction,
-            progress: 0.75,
-            tasksCompleted: 9,
-            totalTasks: 12
+            tasks: sampleTasks(completed: 9, count: 12)
         )
     ]
 }

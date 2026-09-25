@@ -75,7 +75,7 @@ final class ProjectStore: ObservableObject{
         errorMessage = nil
     }
 
-    func createProject(name: String, projectDescription: String, address: String, status: ProjectStatus = .planning, progress: Double = 0, tasksCompleted: Int = 0, totalTasks: Int = 0, noteTexts: [String] = [], pendingDocuments: [PendingProjectDocument] = []) async throws {
+    func createProject(name: String, projectDescription: String, address: String, status: ProjectStatus = .planning, noteTexts: [String] = [], pendingDocuments: [PendingProjectDocument] = [], taskTitles: [String] = []) async throws {
         guard let ownerId = currentUserId else {
             throw AppError.notSignedIn
         }
@@ -111,6 +111,10 @@ final class ProjectStore: ObservableObject{
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .map { ProjectNote(id: UUID().uuidString, text: $0, createdAt: Date()) }
+        let tasks = taskTitles
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .map { ProjectTask(id: UUID().uuidString, title: $0, isCompleted: false) }
 
         //initialising Project Object
         let project = Project(
@@ -120,15 +124,87 @@ final class ProjectStore: ObservableObject{
             projectDescription: cleanedProjDesc,
             address: cleanedAddress,
             status: status,
-            progress: progress,
-            tasksCompleted: tasksCompleted,
-            totalTasks: totalTasks,
             documents: uploadedDocuments,
-            notes: notes
+            notes: notes,
+            tasks: tasks
         )
 
         let data = try Firestore.Encoder().encode(project)
         try await reference.setData(data)
+    }
+
+    func updateProject(_ project: Project, name: String, projectDescription: String, address: String, status: ProjectStatus) async throws {
+        guard let projectId = project.id, !projectId.isEmpty else {
+            throw AppError.projectNotFound
+        }
+
+        let cleanedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanedProjDesc = projectDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanedAddress = address.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !cleanedName.isEmpty, !cleanedProjDesc.isEmpty else {
+            throw AppError.invalidForm("Please enter a name and description.")
+        }
+
+        guard !cleanedAddress.isEmpty else {
+            throw AppError.invalidForm("Please enter an address.")
+        }
+
+        guard cleanedName.count <= 80 else {
+            throw AppError.invalidForm("Project name must be 80 characters or fewer")
+        }
+
+        guard cleanedProjDesc.count <= 600 else {
+            throw AppError.invalidForm("Project description must be 600 characters or fewer")
+        }
+
+        try await database.collection(Project.collectionName).document(projectId).updateData([
+            "name": cleanedName,
+            "projectDescription": cleanedProjDesc,
+            "address": cleanedAddress,
+            "status": status.rawValue
+        ])
+    }
+
+    func addTask(title: String, to project: Project) async throws {
+        guard let projectId = project.id, !projectId.isEmpty else {
+            throw AppError.projectNotFound
+        }
+
+        let cleaned = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else {
+            throw AppError.invalidForm("Enter a step description.")
+        }
+
+        var updatedTasks = project.tasks
+        updatedTasks.append(ProjectTask(id: UUID().uuidString, title: cleaned, isCompleted: false))
+        try await updateTasksField(updatedTasks, projectId: projectId)
+    }
+
+    func setTaskCompleted(_ task: ProjectTask, isCompleted: Bool, in project: Project) async throws {
+        guard let projectId = project.id, !projectId.isEmpty else {
+            throw AppError.projectNotFound
+        }
+
+        var updatedTasks = project.tasks
+        guard let index = updatedTasks.firstIndex(where: { $0.id == task.id }) else { return }
+        updatedTasks[index].isCompleted = isCompleted
+        try await updateTasksField(updatedTasks, projectId: projectId)
+    }
+
+    func deleteTask(_ task: ProjectTask, from project: Project) async throws {
+        guard let projectId = project.id, !projectId.isEmpty else {
+            throw AppError.projectNotFound
+        }
+
+        let updatedTasks = project.tasks.filter { $0.id != task.id }
+        try await updateTasksField(updatedTasks, projectId: projectId)
+    }
+
+    private func updateTasksField(_ tasks: [ProjectTask], projectId: String) async throws {
+        let encoded = try tasks.map { try Firestore.Encoder().encode($0) }
+        try await database.collection(Project.collectionName).document(projectId)
+            .updateData(["tasks": encoded])
     }
 
     func addDocument(_ pending: PendingProjectDocument, to project: Project) async throws {

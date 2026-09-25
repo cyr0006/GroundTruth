@@ -98,6 +98,9 @@ private struct ProjectDetailView: View {
     @State private var isUploadingDocument = false
     @State private var newNoteText = ""
     @State private var isAddingNote = false
+    @State private var newTaskTitle = ""
+    @State private var isAddingTask = false
+    @State private var isShowingEditProject = false
     @State private var errorMessage: String?
 
     // Looked up live from the store (rather than held as a static snapshot) so
@@ -124,9 +127,28 @@ private struct ProjectDetailView: View {
                             Text("\(project.tasksCompleted) of \(project.totalTasks) tasks complete")
                                 .font(.caption)
                         }
-                        ForEach(0..<3) { index in
-                            Label("Sample task \(index + 1)", systemImage: index < project.tasksCompleted ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(index < project.tasksCompleted ? .primary : .secondary)
+
+                        if project.tasks.isEmpty {
+                            Text("No steps yet")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(project.tasks) { task in
+                                taskRow(task, project: project)
+                            }
+                        }
+
+                        HStack {
+                            TextField("Add a step", text: $newTaskTitle)
+                            Button {
+                                addTask(to: project)
+                            } label: {
+                                if isAddingTask {
+                                    ProgressView()
+                                } else {
+                                    Image(systemName: "plus.circle.fill")
+                                }
+                            }
+                            .disabled(isAddingTask || newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
                     }
 
@@ -197,6 +219,18 @@ private struct ProjectDetailView: View {
                 }
                 .navigationTitle(project.name)
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            isShowingEditProject = true
+                        } label: {
+                            Image(systemName: "pencil")
+                        }
+                    }
+                }
+                .sheet(isPresented: $isShowingEditProject) {
+                    EditProjectView(project: project)
+                }
             } else {
                 ContentUnavailableView(
                     "Project Not Found",
@@ -217,6 +251,29 @@ private struct ProjectDetailView: View {
 
     private var errorIsPresented: Binding<Bool> {
         Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
+    }
+
+    private func taskRow(_ task: ProjectTask, project: Project) -> some View {
+        Button {
+            toggleTask(task, project: project)
+        } label: {
+            Label {
+                Text(task.title)
+                    .foregroundStyle(.primary)
+                    .strikethrough(task.isCompleted)
+            } icon: {
+                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(task.isCompleted ? Color.accentColor : .secondary)
+            }
+        }
+        .buttonStyle(.plain)
+        .swipeActions {
+            Button(role: .destructive) {
+                deleteTask(task, project: project)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
     }
 
     private func documentRow(_ document: ProjectDocument, project: Project) -> some View {
@@ -311,6 +368,40 @@ private struct ProjectDetailView: View {
             }
         }
     }
+
+    private func addTask(to project: Project) {
+        isAddingTask = true
+        let title = newTaskTitle
+        Task {
+            defer { isAddingTask = false }
+            do {
+                try await projectStore.addTask(title: title, to: project)
+                newTaskTitle = ""
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func toggleTask(_ task: ProjectTask, project: Project) {
+        Task {
+            do {
+                try await projectStore.setTaskCompleted(task, isCompleted: !task.isCompleted, in: project)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func deleteTask(_ task: ProjectTask, project: Project) {
+        Task {
+            do {
+                try await projectStore.deleteTask(task, from: project)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
 }
 
 
@@ -324,11 +415,16 @@ private struct NewProjectView: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
 
+    @State private var status: ProjectStatus = .planning
+
     @State private var pendingDocuments: [StagedDocument] = []
     @State private var isShowingDocumentPicker = false
 
     @State private var noteDrafts: [String] = []
     @State private var newNoteText = ""
+
+    @State private var taskDrafts: [String] = []
+    @State private var newTaskTitle = ""
 
     private struct StagedDocument: Identifiable {
         let id = UUID()
@@ -343,10 +439,37 @@ private struct NewProjectView: View {
                     TextField("Project name", text: $name)
                     TextField("Description", text: $description, axis: .vertical)
                         .lineLimit(3...6)
+                    Picker("Status", selection: $status) {
+                        ForEach(ProjectStatus.allCases) { status in
+                            Text(status.rawValue).tag(status)
+                        }
+                    }
                 }
 
                 Section("Property") {
                     TextField("Address", text: $address)
+                }
+
+                Section("Roadmap & Checklist") {
+                    if !taskDrafts.isEmpty {
+                        ForEach(Array(taskDrafts.enumerated()), id: \.offset) { _, task in
+                            Text(task)
+                        }
+                        .onDelete { taskDrafts.remove(atOffsets: $0) }
+                    }
+
+                    HStack {
+                        TextField("Add a step", text: $newTaskTitle)
+                        Button {
+                            let cleaned = newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                            guard !cleaned.isEmpty else { return }
+                            taskDrafts.append(cleaned)
+                            newTaskTitle = ""
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                        }
+                        .disabled(newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
                 }
 
                 Section("Documents") {
@@ -441,8 +564,97 @@ private struct NewProjectView: View {
                     name: name,
                     projectDescription: description,
                     address: address,
+                    status: status,
                     noteTexts: noteDrafts,
-                    pendingDocuments: pendingDocuments.map { PendingProjectDocument(fileName: $0.fileName, data: $0.data) }
+                    pendingDocuments: pendingDocuments.map { PendingProjectDocument(fileName: $0.fileName, data: $0.data) },
+                    taskTitles: taskDrafts
+                )
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+}
+
+private struct EditProjectView: View {
+    let project: Project
+
+    @EnvironmentObject private var projectStore: ProjectStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var name: String
+    @State private var description: String
+    @State private var address: String
+    @State private var status: ProjectStatus
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    init(project: Project) {
+        self.project = project
+        _name = State(initialValue: project.name)
+        _description = State(initialValue: project.projectDescription)
+        _address = State(initialValue: project.address)
+        _status = State(initialValue: project.status)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Project Details") {
+                    TextField("Project name", text: $name)
+                    TextField("Description", text: $description, axis: .vertical)
+                        .lineLimit(3...6)
+                    Picker("Status", selection: $status) {
+                        ForEach(ProjectStatus.allCases) { status in
+                            Text(status.rawValue).tag(status)
+                        }
+                    }
+                }
+
+                Section("Property") {
+                    TextField("Address", text: $address)
+                }
+            }
+            .navigationTitle("Edit Project")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .disabled(isSaving)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if isSaving {
+                        ProgressView()
+                    } else {
+                        Button("Save") { saveChanges() }
+                            .disabled(name.isEmpty || address.isEmpty || description.isEmpty)
+                    }
+                }
+            }
+            .alert("Couldn't Save Changes", isPresented: errorIsPresented) {
+                Button("Ok", role: .cancel) { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "Please try again.")
+            }
+        }
+    }
+
+    private var errorIsPresented: Binding<Bool> {
+        Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
+    }
+
+    private func saveChanges() {
+        isSaving = true
+        Task {
+            defer { isSaving = false }
+            do {
+                try await projectStore.updateProject(
+                    project,
+                    name: name,
+                    projectDescription: description,
+                    address: address,
+                    status: status
                 )
                 dismiss()
             } catch {
