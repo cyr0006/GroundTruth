@@ -36,7 +36,6 @@
 				4E4D6DB930590A6F002CE047 /* FirebaseFirestore in Frameworks */,
 				4E8CFCD73066711600D88526 /* FirebaseAppCheck in Frameworks */,
 				4E4D6DBB30590A6F002CE047 /* FirebaseStorage in Frameworks */,
-				4E4D6DBD30590A6F002CE047 /* FirebaseAI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
