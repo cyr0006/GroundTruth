@@ -8,13 +8,15 @@
 import SwiftUI
 
 struct ProjectsView: View {
-    @State private var projects = Project.sampleProjects
+    @EnvironmentObject private var projectStore: ProjectStore
     @State private var isShowingNewProject = false
 
     var body: some View {
         NavigationStack {
             Group {
-                if projects.isEmpty {
+                if projectStore.isLoading && projectStore.projects.isEmpty {
+                    ProgressView("Loading your projects...")
+                } else if projectStore.projects.isEmpty {
                     ContentUnavailableView(
                         "No Projects Yet",
                         systemImage: "hammer",
@@ -22,7 +24,7 @@ struct ProjectsView: View {
                     )
                 } else {
                     List {
-                        ForEach(projects) { project in
+                        ForEach(projectStore.projects) { project in
                             NavigationLink(value: project) {
                                 ProjectRow(project: project)
                             }
@@ -45,11 +47,21 @@ struct ProjectsView: View {
                 }
             }
             .sheet(isPresented: $isShowingNewProject) {
-                NewProjectView { newProject in
-                    projects.append(newProject)
-                }
+                NewProjectView()
+            }
+            .alert("Couldn't Load Projects", isPresented: projectErrorIsPresented) {
+                Button("Ok", role: .cancel) { projectStore.clearError() }
+            } message: {
+                Text(projectStore.errorMessage ?? "Please try again.")
             }
         }
+    }
+
+    private var projectErrorIsPresented: Binding<Bool> {
+        Binding(
+            get: { projectStore.errorMessage != nil },
+            set: { if !$0 { projectStore.clearError() } }
+        )
     }
 }
 
@@ -124,13 +136,14 @@ private struct ProjectDetailView: View {
 
 
 private struct NewProjectView: View {
+    @EnvironmentObject private var projectStore: ProjectStore
     @Environment(\.dismiss) private var dismiss
 
     @State private var name = ""
     @State private var description = ""
     @State private var address = ""
-
-    var onCreate: (Project) -> Void
+    @State private var isSaving = false
+    @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -150,23 +163,42 @@ private struct NewProjectView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .disabled(isSaving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Create") {
-                        let project = Project(
-                            name: name,
-                            projectDescription: description,
-                            address: address,
-                            status: .planning,
-                            progress: 0,
-                            tasksCompleted: 0,
-                            totalTasks: 0
-                        )
-                        onCreate(project)
-                        dismiss()
+                    if isSaving {
+                        ProgressView()
+                    } else {
+                        Button("Create") { createProject() }
+                            .disabled(name.isEmpty || address.isEmpty || description.isEmpty)
                     }
-                    .disabled(name.isEmpty || address.isEmpty)
                 }
+            }
+            .alert("Couldn't Create Project", isPresented: errorIsPresented) {
+                Button("Ok", role: .cancel) { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "Please try again.")
+            }
+        }
+    }
+
+    private var errorIsPresented: Binding<Bool> {
+        Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
+    }
+
+    private func createProject() {
+        isSaving = true
+        Task {
+            defer { isSaving = false }
+            do {
+                try await projectStore.createProject(
+                    name: name,
+                    projectDescription: description,
+                    address: address
+                )
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
             }
         }
     }
@@ -174,4 +206,5 @@ private struct NewProjectView: View {
 
 #Preview {
     ProjectsView()
+        .environmentObject(ProjectStore())
 }

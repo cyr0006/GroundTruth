@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct HomeView: View {
-    private let projects = Project.sampleProjects
+    @EnvironmentObject private var projectStore: ProjectStore
 
     var body: some View {
         NavigationStack {
@@ -66,10 +66,16 @@ struct HomeView: View {
                 .font(.subheadline)
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(projects) { project in
-                        ProjectSummaryCard(project: project)
+            if projectStore.projects.isEmpty {
+                Text("You haven't created a project yet. Tap the Projects tab to add one.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(projectStore.projects) { project in
+                            ProjectSummaryCard(project: project)
+                        }
                     }
                 }
             }
@@ -150,4 +156,5 @@ private struct ProjectSummaryCard: View {
 
 #Preview {
     HomeView()
+        .environmentObject(ProjectStore())
 }

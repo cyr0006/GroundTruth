@@ -36,13 +36,11 @@ private struct AuthenticatedRootView: View {
         .environmentObject(authService)
         .environmentObject(projectStore)
         .onChange(of: authService.user?.uid, initial: true){_, userID in
-            if userID == nil {
-                projectStore.stopListening()
+            if let userID {
+                projectStore.startListening(for: userID)
             } else {
-                projectStore.startListening()
+                projectStore.stopListening()
             }
-            
-            
         }
     }
 }

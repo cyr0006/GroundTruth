@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ProfileView: View {
+    @EnvironmentObject private var projectStore: ProjectStore
     @State private var notificationsEnabled = true
 
     var body: some View {
@@ -36,7 +37,7 @@ struct ProfileView: View {
                 }
 
                 Section("Account") {
-                    LabeledContent("Saved Projects", value: "\(Project.sampleProjects.count)")
+                    LabeledContent("Saved Projects", value: "\(projectStore.projects.count)")
                     NavigationLink("Personal Details") {
                         Text("Personal details editing coming soon.")
                             .foregroundStyle(.secondary)
@@ -82,4 +83,5 @@ struct ProfileView: View {
 
 #Preview {
     ProfileView()
+        .environmentObject(ProjectStore())
 }
