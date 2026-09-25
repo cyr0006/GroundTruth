@@ -6,6 +6,7 @@
 import Foundation
 import MapKit
 import Contacts
+internal import Combine
 
 @MainActor
 final class AddressSearchCompleter: NSObject, ObservableObject {

@@ -74,7 +74,6 @@ struct ProfileView: View {
                     } label: {
                         Text("Sign Out")
                     }
-                    .disabled(true)
                 }
             }
             .navigationTitle("Profile")
