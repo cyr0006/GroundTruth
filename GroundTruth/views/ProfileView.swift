@@ -11,6 +11,7 @@ struct ProfileView: View {
     @EnvironmentObject private var projectStore: ProjectStore
     @EnvironmentObject private var authService: AuthService
     @State private var notificationsEnabled = true
+    @State private var signoutConfirmationShowing = false
 
     var body: some View {
         NavigationStack {
@@ -70,9 +71,18 @@ struct ProfileView: View {
 
                 Section {
                     Button(role: .destructive) {
-                        signOut()
                     } label: {
                         Text("Sign Out")
+                    }
+                    .alert(isPresented: $signoutConfirmationShowing) {
+                        Alert(
+                            title: Text("Sign Out"),
+                            message: Text("Are you sure you want to sign out?"),
+                            primaryButton: .cancel(),
+                            secondaryButton: .destructive(Text("Sign Out")) {
+                                signOut()
+                            }
+                        )
                     }
                 }
             }
