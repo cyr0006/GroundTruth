@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct ProfileView: View {
     @EnvironmentObject private var projectStore: ProjectStore
@@ -24,10 +25,10 @@ struct ProfileView: View {
                             .foregroundStyle(.secondary)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Aryan Cyrus")
+                            Text("\(authService.user?.displayName ?? "User")")
                                 .font(.title3)
                                 .fontWeight(.semibold)
-                            Text("aryan.cyrus@example.com")
+                            Text("\(authService.user?.email ?? "Email Not Available")")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                             Text("Sign-in not yet available")
@@ -36,6 +37,7 @@ struct ProfileView: View {
                         }
                     }
                     .padding(.vertical, 8)
+                    
                 }
 
                 Section("Account") {
