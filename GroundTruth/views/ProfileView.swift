@@ -13,6 +13,10 @@ struct ProfileView: View {
     @EnvironmentObject private var authService: AuthService
     @State private var notificationsEnabled = true
     @State private var signoutConfirmationShowing = false
+    
+    private var displayName: String {
+        authService.user?.displayName ?? "User"
+    }
 
     var body: some View {
         NavigationStack {
@@ -25,15 +29,12 @@ struct ProfileView: View {
                             .foregroundStyle(.secondary)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("\(authService.user?.displayName ?? "User")")
+                            Text("\(displayName)")
                                 .font(.title3)
                                 .fontWeight(.semibold)
                             Text("\(authService.user?.email ?? "Email Not Available")")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                            Text("Sign-in not yet available")
-                                .font(.caption)
-                                .foregroundStyle(.orange)
                         }
                     }
                     .padding(.vertical, 8)
@@ -43,9 +44,7 @@ struct ProfileView: View {
                 Section("Account") {
                     LabeledContent("Saved Projects", value: "\(projectStore.projects.count)")
                     NavigationLink("Personal Details") {
-                        Text("Personal details editing coming soon.")
-                            .foregroundStyle(.secondary)
-                            .navigationTitle("Personal Details")
+                        PersonalDetailsView()
                     }
                 }
 
