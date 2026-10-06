@@ -30,28 +30,29 @@ struct MapView: View {
     @State private var isLoadingPlanningInfo = false
     @State private var viewportFetchTask: Task<Void, Never>?
     
+    private struct PlanningPolygonItem: Identifiable{
+        let id: String
+        let polygon: MKPolygon
+        let color: Color
+    }
+    
     var body: some View{
         NavigationStack{
             ZStack(alignment: .top){
                 Map(position: $cameraPosition){
                     if showZonesLayer {
-                        ForEach(zoneFeatures) { feature in
-                            ForEach(Array(feature.polygons.enumerated()), id: \.offset){_, polygon in
-                                let color = PlanningZoneStyle.color(forZoneCode: feature.properties.zoneCode)
-                                MapPolygon(polygon)
-                                    .foregroundStyle(color.opacity(0.35))
-                                    .stroke(color, lineWidth: 1)
-                            }
+                        ForEach(zonePolygonItems) { item in
+                            MapPolygon(item.polygon)
+                                .foregroundStyle(item.color.opacity(0.35))
+                                .stroke(item.color, lineWidth: 2)
                         }
                     }
                     
                     if showOverlaysLayer{
-                        ForEach(overlayFeatures){ feature in
-                            ForEach(Array(feature.polygons.enumerated()), id: \.offset){_, polygon in
-                                MapPolygon(polygon)
-                                    .foregroundStyle(.clear)
-                                    .stroke(.brown, lineWidth: 2)
-                            }
+                        ForEach(overlayPolygonItems) { item in
+                            MapPolygon(item.polygon)
+                                .foregroundStyle(.clear)
+                                .stroke(item.color, lineWidth: 2)
                         }
                     }
                     
@@ -88,7 +89,7 @@ struct MapView: View {
                             .padding()
                     }
                 }
-                .ignoresSafeArea(edge: .bottom)
+                .ignoresSafeArea(edges: .bottom)
                 VStack(spacing: 12){
                     searchBar
                     if selectedAddress != nil {
@@ -109,7 +110,7 @@ struct MapView: View {
                             Label("Overlays", systemImage: "square.stack.3d.up")
                         }
                     } label: {
-                        Image(systemImage: "square.3.layers.3d")
+                        Image(systemName: "square.3.layers.3d")
                     }
                 }
             }
@@ -219,4 +220,25 @@ struct MapView: View {
             selectedPlanningInfo = try? await planningService.fetchPlanningInfo(at: coordinate)
         }
     }
+    
+    private var zonePolygonItems: [PlanningPolygonItem] {
+        zoneFeatures.flatMap {feature in
+            let color = PlanningZoneStyle.color(forZoneCode: feature.properties.zoneCode)
+            return feature.polygons.enumerated().map {index, polygon in
+                PlanningPolygonItem(id: "\(feature.id)-\(index)", polygon: polygon, color: color)
+                
+            }
+        }
+    }
+    
+    private var overlayPolygonItems: [PlanningPolygonItem] {
+        overlayFeatures.flatMap {feature in
+            let color = PlanningZoneStyle.color(forZoneCode: feature.properties.zoneCode)
+            return feature.polygons.enumerated().map {index, polygon in
+                PlanningPolygonItem(id: "\(feature.id)-\(index)", polygon: polygon, color: .brown)
+                
+            }
+        }
+    }
+
 }
