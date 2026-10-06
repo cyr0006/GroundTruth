@@ -9,23 +9,52 @@ import SwiftUI
 import MapKit
 
 struct MapView: View {
-    @State private var cameraPosition: MapCameraPosition = .region(
-        MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: -37.8136, longitude: 144.9631), // Melbourne, VIC
-            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-        )
+    private static let initialRegion = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: -37.8136, longitude: 144.9631) //Melbourne, the city of assholes
+        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
     )
-
+    
+    @State private var cameraPosition: MapCameraPosition = .region(initialRegion)
+    @State private var currentRegion = initialRegion
+    
     @State private var searchText = ""
     @State private var showZonesLayer = true
     @State private var showOverlaysLayer = false
     @State private var selectedAddress: String?
-    @State private var selectedCoordinate: CLLocationCoordinate2D?
-
-    var body: some View {
-        NavigationStack {
-            ZStack(alignment: .top) {
-                Map(position: $cameraPosition) {
+    @State private var selectedCoordinate: CLLocationCoordinate2D
+    
+    @StateObject private var planningService = VicmapPlanningService()
+    @State private var zoneFeatures: [PlanningFeature] = []
+    @State private var overlayFeatures: [PlanningFeature] = []
+    @State private var selectedPlanningInfo: PropertyPlanningInfo?
+    @State private var isLoadingPlanningInfo = false
+    @State private var viewportFetchTask: Task<Void, Never>?
+    
+    var body: some View{
+        NavigationStack{
+            ZStack(alignment: .top){
+                Map(position: $cameraPosition){
+                    if showZonesLayer {
+                        ForEach(zoneFeatures) { feature in
+                            ForEach(Array(feature.polygons.enumerated()), id: \.offset){_, polygon in
+                                let color = PlanningZoneStyle.color(forZoneCode: feature.properties.zoneCode)
+                                MapPolygon(polygon)
+                                    .foregroundStyle(color.opacity(0.35))
+                                    .stroke(color, lineWidth: 1)
+                            }
+                        }
+                    }
+                    
+                    if showOverlaysLayer{
+                        ForEach(overlayFeatures){ feature in
+                            ForEach(Array(feature.polygons.enumerated()), id: \.offset){_, polygon in
+                                MapPolygon(polygon)
+                                    .foregroundStyle(.clear)
+                                    .stroke(.brown, lineWidth: 2)
+                            }
+                        }
+                    }
+                    
                     if let selectedAddress, let selectedCoordinate {
                         Marker(selectedAddress, systemImage: "mappin", coordinate: selectedCoordinate)
                             .tint(.red)
@@ -36,93 +65,22 @@ struct MapView: View {
                     MapScaleView()
                     MapUserLocationButton()
                 }
-                .ignoresSafeArea(edges: .bottom)
-
-                VStack(spacing: 12) {
-                    searchBar
-                    if selectedAddress != nil {
-                        propertyInfoCard
-                    }
+                .onMapCameraChange (frequency: .onEnd) { context in
+                    currentRegion = context.region
+                    scheduleViewportFetch()
                 }
-                .padding()
-            }
-            .navigationTitle("Map")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Toggle(isOn: $showZonesLayer) {
-                            Label("Planning Zones", systemImage: "square.on.square")
-                        }
-                        Toggle(isOn: $showOverlaysLayer) {
-                            Label("Overlays", systemImage: "square.stack.3d.up")
-                        }
-                    } label: {
-                        Image(systemName: "square.3.layers.3d")
-                    }
+                .task{
+                    scheduleViewportFetch()
                 }
+                .onChange(of: showZonesLayer){_, isOn in
+                    if isOn {scheduleViewportFetch()} else {zoneFeatures = []}
+                }
+                .onChange(of: showOverlaysLayer){_, isOn in
+                    if isOn {scheduleViewportFetch()} else {overlayFeatures = []}
+                }
+                .overlay(alignment: .bottomTrailing)
+                
             }
         }
     }
-
-    private var searchBar: some View {
-        AddressSearchField(text: $searchText, placeholder: "Search an address", leadingIcon: "magnifyingglass") { address, coordinate in
-            selectedAddress = address
-            selectedCoordinate = coordinate
-            if let coordinate {
-                withAnimation {
-                    cameraPosition = .region(
-                        MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))
-                    )
-                }
-            }
-        }
-        .onChange(of: searchText) { _, newValue in
-            if newValue.isEmpty {
-                selectedAddress = nil
-                selectedCoordinate = nil
-            }
-        }
-        .padding(10)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .shadow(radius: 2)
-    }
-
-    private var propertyInfoCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(selectedAddress ?? "")
-                .font(.headline)
-
-            HStack(spacing: 8) {
-                if showZonesLayer {
-                    tagView("General Residential Zone", color: .blue)
-                }
-                if showOverlaysLayer {
-                    tagView("Heritage Overlay", color: .brown)
-                }
-            }
-
-            Text("Planning information for this property will appear here once Vicmap data is connected.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .shadow(radius: 2)
-    }
-
-    private func tagView(_ text: String, color: Color) -> some View {
-        Text(text)
-            .font(.caption2)
-            .fontWeight(.semibold)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(color.opacity(0.15), in: Capsule())
-            .foregroundStyle(color)
-    }
-}
-
-#Preview {
-    MapView()
 }
