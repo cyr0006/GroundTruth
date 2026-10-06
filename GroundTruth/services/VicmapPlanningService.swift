@@ -7,10 +7,11 @@
 
 import Foundation
 import MapKit
+internal import Combine
 
 @MainActor
 final class VicmapPlanningService: ObservableObject {
-    private static let baseUrl = "https://services-ap1.arcgis.com/P744lA0wf4LlBZ84/ArcGIS/rest/services/Vicmap_Planning/FeatureServer"
+    private static let baseURL = "https://services-ap1.arcgis.com/P744lA0wf4LlBZ84/ArcGIS/rest/services/Vicmap_Planning/FeatureServer"
     private static let zoneLayerId = 3
     private static let overlayLayerId = 2
     
@@ -18,22 +19,22 @@ final class VicmapPlanningService: ObservableObject {
         try await queryFeatures(layerId: Self.zoneLayerId, envelope: region)
     }
     
-    func fetchOVerlayPolygons(in region: MKCoordinateRegion) async throws ->[PlanningFeature] {
+    func fetchOverlayPolygons(in region: MKCoordinateRegion) async throws ->[PlanningFeature] {
         try await queryFeatures(layerId: Self.overlayLayerId, envelope: region)
     }
     
     func fetchPlanningInfo(at coordinate: CLLocationCoordinate2D) async throws -> PropertyPlanningInfo {
-        async let zones = queryFeartures(layerId: Self.overlayLayerId, point: coordinate)
-        async let overlays = queryFeatures(layerID: Self.overlayLayerId, point: coordinate)
+        async let zones = queryFeatures(layerId: Self.overlayLayerId, point: coordinate)
+        async let overlays = queryFeatures(layerId: Self.overlayLayerId, point: coordinate)
         
         let zoneName = try await zones.first?.properties.zoneDescription
         let overlayNames = try await overlays.compactMap(\.properties.zoneDescription)
         
-        return propertyPlanningInfo(zoneName: zoneName, overlayNames: overlayNames)
+        return PropertyPlanningInfo(zoneName: zoneName, overlayNames: overlayNames)
     }
     
     //Mark: Query Building
-    private func queryFeatures(layerID: Int, envelope region: MKCoordinateRegion) async throws -> [PlanningFeature]{
+    private func queryFeatures(layerId: Int, envelope region: MKCoordinateRegion) async throws -> [PlanningFeature]{
         
         let minLon = region.center.longitude - region.span.longitudeDelta / 2
         let maxLon = region.center.longitude + region.span.longitudeDelta / 2
@@ -41,26 +42,70 @@ final class VicmapPlanningService: ObservableObject {
         let maxLat = region.center.latitude + region.span.latitudeDelta / 2
         let geometry = "\(minLon), \(minLat), \(maxLon), \(maxLat)"
         
-        return try await query(layerId: layerID, geometry: geometry, geometryType: "esriGeometryEnvelope")
+        return try await query(layerId: layerId, geometry: geometry, geometryType: "esriGeometryEnvelope")
     }
     
-    private func queryFeatures(layerID: Int, point coordinate: CLLocationCoordinate2D) async throw -> [PlanningFeature] {
-        let geometry ="\(coordinate.longitude), \(coordinate.latitude)"
+    private func queryFeatures(layerId: Int, point coordinate: CLLocationCoordinate2D) async throws -> [PlanningFeature] {
+        let geometry = "\(coordinate.longitude), \(coordinate.latitude)"
+        return try await query(layerId: layerId, geometry: geometry, geometryType: "esriGerometryPoint")
     }
     
-    private func query(layerID: Int, geometry: String, geometryType: String) async throws -> [PlanningFeature] {
-        var components = URLComponents(string: "\(Self.baseURL)/\(layerID)/query")!
+    private func query(layerId: Int, geometry: String, geometryType: String) async throws -> [PlanningFeature] {
+        var components = URLComponents(string: "\(Self.baseURL)/\(layerId)/query")!
         components.queryItems = [
             URLQueryItem(name: "where", value: "1=1"),
             URLQueryItem(name: "geometry", value: geometry),
             URLQueryItem(name: "geometryType", value: geometryType),
-            URLQueryItem(name: "inSR", value: ""),
-            URLQueryItem(name: "", value: "4326"),
-            URLQueryItem(name: "", value: ""),
-            URLQueryItem(name: "", value: ""),
-            URLQueryItem(name: "", value: ""),
-            URLQueryItem(name: "", value: "")
+            URLQueryItem(name: "inSR", value: "4326"),
+            URLQueryItem(name: "spatialRel", value: "esriSpatialRelIntersects"),
+            URLQueryItem(name: "outFields", value: "zone_code, zone_description, lga, zone_status"),
+            URLQueryItem(name: "returnGeometry", value: "true"),
+            URLQueryItem(name: "outSR", value: "4326"),
+            URLQueryItem(name: "f", value: "geojson")
         ]
+        
+        let (data, _) =  try await URLSession.shared.data(from: components.url!)
+        warnIfTruncated(data, layerId: layerId)
+        return try Self.decodeFeatures(from: data)
     }
-
+    
+    private func warnIfTruncated(_ data: Data, layerId: Int){
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              json["exceededTransferlimit"] as? Bool == true else {return}
+        print("VicmapPlanningService: results truncated (exceededTransferLimit) for layer \(layerId)")
+    }
+    
+    // MARK: - Decoding
+    
+    private static func decodeFeatures(from data: Data) throws -> [PlanningFeature]{
+        let objects = try MKGeoJSONDecoder().decode(data)
+        let decoder = JSONDecoder()
+        
+        return objects.compactMap{object -> PlanningFeature? in
+            guard let feature = object as? MKGeoJSONFeature,
+                  let propertiesData = feature.properties,
+                  let properties = try? decoder.decode(PlanningFeatureProperties.self, from: propertiesData) else{
+                return nil
+            }
+            
+            
+            
+            let polygons = feature.geometry.flatMap { shape -> [MKPolygon] in
+                switch shape {
+                case let polygon as MKPolygon: return [polygon]
+                case let multiPolygon as MKMultiPolygon: return multiPolygon.polygons
+                default: return []
+                }
+            }
+            
+            guard !polygons.isEmpty else {return nil}
+            
+            return PlanningFeature(
+                id: feature.identifier ?? UUID().uuidString,
+                polygons: polygons,
+                properties: properties
+            )
+            
+        }
+    }
 }

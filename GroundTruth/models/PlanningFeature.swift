@@ -28,7 +28,7 @@ struct PlanningFeature: Identifiable{
     let properties: PlanningFeatureProperties
 }
 
-struct propertyPlanningInfo {
+struct PropertyPlanningInfo {
     let zoneName: String?
     let overlayNames: [String]
 }
