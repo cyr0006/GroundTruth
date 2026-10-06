@@ -79,15 +79,20 @@ struct MapView: View {
                 .onChange(of: showOverlaysLayer){_, isOn in
                     if isOn {scheduleViewportFetch()} else {overlayFeatures = []}
                 }
-                .overlay(alignment: .bottomTrailing){
-                    if showZonesLayer || showOverlaysLayer || selectedPlanningInfo != nil {
-                        Text("Planning Data [Copyright Symbol] State of Victoria (data.vic.gov.au)")
-                            .font(.caption2)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(.regularMaterial, in: Capsule())
-                            .padding()
+                .overlay(alignment: .bottomTrailing) {
+                    VStack(alignment: .trailing, spacing: 6) {
+                        if showOverlaysLayer {
+                            overlayLegend
+                        }
+                        if showZonesLayer || showOverlaysLayer || selectedPlanningInfo != nil {
+                            Text("Planning data © State of Victoria (data.vic.gov.au)")
+                                .font(.caption2)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(.regularMaterial, in: Capsule())
+                        }
                     }
+                    .padding()
                 }
                 .ignoresSafeArea(edges: .bottom)
                 VStack(spacing: 12){
@@ -232,13 +237,31 @@ struct MapView: View {
     }
     
     private var overlayPolygonItems: [PlanningPolygonItem] {
-        overlayFeatures.flatMap {feature in
-            let color = PlanningZoneStyle.color(forZoneCode: feature.properties.zoneCode)
-            return feature.polygons.enumerated().map {index, polygon in
-                PlanningPolygonItem(id: "\(feature.id)-\(index)", polygon: polygon, color: .brown)
-                
+        overlayFeatures.flatMap { feature in
+            let color = PlanningZoneStyle.overlayColor(forOverlayCode: feature.properties.zoneCode)
+            return feature.polygons.enumerated().map { index, polygon in
+                PlanningPolygonItem(id: "\(feature.id)-\(index)", polygon: polygon, color: color)
             }
         }
+    }
+
+    private var overlayLegend: some View {
+        let scodes: [(String, Color)] = [
+            ("Heritage (HO)", .brown), ("Vegetation Protection (VPO)", .green),
+            ("Significant Landscape (SLO)", .teal), ("Environmental Significance (ESO)", .mint),
+            ("Bushfire Management (BMO)", .red), ("Flood / Inundation", .indigo),
+            ("Design & Development (DDO)", .purple), ("Other", .orange)
+        ]
+        return VStack(alignment: .leading, spacing: 4) {
+            ForEach(codes, id: \.0) { label, color in
+                HStack(spacing: 6) {
+                    Circle().fill(color).frame(width: 8, height: 8)
+                    Text(label).font(.caption2)
+                }
+            }
+        }
+        .padding(8)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
     }
 
 }

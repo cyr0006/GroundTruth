@@ -40,4 +40,21 @@ enum PlanningZoneStyle {
         let prefix = trimmed.prefix{!$0.isNumber}
         return prefix.isEmpty ? nil : String(prefix)
     }
+
+    static func overlayColor(forOverlayCode code: String?) -> Color {
+        guard let code, let prefix = zonePrefix(of: code) else { return .gray }
+
+        switch prefix {
+        case "HO": return .brown     // Heritage Overlay
+        case "VPO": return .green    // Vegetation Protection Overlay
+        case "SLO": return .teal     // Significant Landscape Overlay
+        case "ESO": return .mint     // Environmental Significance Overlay
+        case "BMO": return .red      // Bushfire Management Overlay
+        case "LSIO", "SBO", "FO": return .indigo // Flood / Inundation Overlay
+        case "DDO": return .purple   // Design and Development Overlay
+        case "DCPO", "ICPO": return .yellow //
+        case "PAO": return .pink     // Public Acquisition Overlay
+        default: return .orange
+        }
+    }
 }
