@@ -49,7 +49,6 @@ final class VicmapPlanningService: ObservableObject {
         let geometry = "\(coordinate.longitude), \(coordinate.latitude)"
         return try await query(layerId: layerId, geometry: geometry, geometryType: "esriGerometryPoint")
     }
-    
 
     private func query(layerId: Int, geometry: String, geometryType: String) async throws -> [PlanningFeature] {
         var components = URLComponents(string: "\(Self.baseURL)/\(layerId)/query")!
@@ -59,9 +58,9 @@ final class VicmapPlanningService: ObservableObject {
             URLQueryItem(name: "geometryType", value: geometryType),
             URLQueryItem(name: "inSR", value: "4326"),
             URLQueryItem(name: "spatialRel", value: "esriSpatialRelIntersects"),
-            URLQueryItem(name: "outFields", value: "description,lga,zone_status"),
+            URLQueryItem(name: "outFields", value: "zone_code,zone_description,lga,zone_status"),
             URLQueryItem(name: "returnGeometry", value: "true"),
-            URLQueryItem(name: "outSR", val
+            URLQueryItem(name: "outSR", value: "4326"),
             URLQueryItem(name: "f", value: "geojson")
         ]
 
@@ -69,14 +68,15 @@ final class VicmapPlanningService: ObservableObject {
         print("VicmapPlanningService: requesting \(url.absoluteString)")
 
         let (data, response) = try await URLSession.shared.data(from: url)
-        if let httpResponse = response as?
+        if let httpResponse = response as? HTTPURLResponse {
             print("VicmapPlanningService: layer \(layerId) responded HTTP \(httpResponse.statusCode)")
         }
         warnIfTruncated(data, layerId: layerId)
-        let features = try Self.decodeFeatu
+        let features = try Self.decodeFeatures(from: data)
         print("VicmapPlanningService: layer \(layerId) decoded \(features.count) feature(s)")
         return features
     }
+    
     
     private func warnIfTruncated(_ data: Data, layerId: Int){
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
