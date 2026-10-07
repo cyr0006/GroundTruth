@@ -50,6 +50,7 @@ final class VicmapPlanningService: ObservableObject {
         return try await query(layerId: layerId, geometry: geometry, geometryType: "esriGerometryPoint")
     }
     
+
     private func query(layerId: Int, geometry: String, geometryType: String) async throws -> [PlanningFeature] {
         var components = URLComponents(string: "\(Self.baseURL)/\(layerId)/query")!
         components.queryItems = [
@@ -58,15 +59,23 @@ final class VicmapPlanningService: ObservableObject {
             URLQueryItem(name: "geometryType", value: geometryType),
             URLQueryItem(name: "inSR", value: "4326"),
             URLQueryItem(name: "spatialRel", value: "esriSpatialRelIntersects"),
-            URLQueryItem(name: "outFields", value: "zone_code, zone_description, lga, zone_status"),
+            URLQueryItem(name: "outFields", value: "description,lga,zone_status"),
             URLQueryItem(name: "returnGeometry", value: "true"),
-            URLQueryItem(name: "outSR", value: "4326"),
+            URLQueryItem(name: "outSR", val
             URLQueryItem(name: "f", value: "geojson")
         ]
-        
-        let (data, _) =  try await URLSession.shared.data(from: components.url!)
+
+        let url = components.url!
+        print("VicmapPlanningService: requesting \(url.absoluteString)")
+
+        let (data, response) = try await URLSession.shared.data(from: url)
+        if let httpResponse = response as?
+            print("VicmapPlanningService: layer \(layerId) responded HTTP \(httpResponse.statusCode)")
+        }
         warnIfTruncated(data, layerId: layerId)
-        return try Self.decodeFeatures(from: data)
+        let features = try Self.decodeFeatu
+        print("VicmapPlanningService: layer \(layerId) decoded \(features.count) feature(s)")
+        return features
     }
     
     private func warnIfTruncated(_ data: Data, layerId: Int){
