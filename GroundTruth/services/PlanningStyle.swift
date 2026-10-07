@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-enum PlanningZoneStyle {
+enum PlanningStyle {
     static func color(forZoneCode code: String?) -> Color {
         guard let code, let family = zoneFamily(of: code) else {return .gray}
         return family
