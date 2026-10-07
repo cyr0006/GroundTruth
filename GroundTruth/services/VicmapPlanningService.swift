@@ -47,7 +47,7 @@ final class VicmapPlanningService: ObservableObject {
     
     private func queryFeatures(layerId: Int, point coordinate: CLLocationCoordinate2D) async throws -> [PlanningFeature] {
         let geometry = "\(coordinate.longitude), \(coordinate.latitude)"
-        return try await query(layerId: layerId, geometry: geometry, geometryType: "esriGerometryPoint")
+        return try await query(layerId: layerId, geometry: geometry, geometryType: "esriGeometryPoint")
     }
 
     private func query(layerId: Int, geometry: String, geometryType: String) async throws -> [PlanningFeature] {

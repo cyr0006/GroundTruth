@@ -41,7 +41,7 @@ enum PlanningStyle {
         return prefix.isEmpty ? nil : String(prefix)
     }
 
-    static func overlayColor(forOverlayCode code: String?) -> Color {
+    static func color(forOverlayCode code: String?) -> Color {
         guard let code, let prefix = codePrefix(of: code) else { return .gray }
 
         switch prefix {
