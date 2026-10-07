@@ -49,9 +49,23 @@ struct HomeView: View {
                 .font(.headline)
 
             HStack(spacing: 12) {
-                QuickActionButton(title: "New Project", systemImage: "plus.circle.fill", tint: .blue)
-                QuickActionButton(title: "Search Address", systemImage: "mappin.and.ellipse", tint: .green)
-                QuickActionButton(title: "Ask AI", systemImage: "sparkles", tint: .purple)
+                Button {
+                    // Some Placeholder action
+                } label: {
+                    QuickActionButtonLabel(title: "New Project", systemImage: "plus.circle.fill", tint: .blue)
+                }
+
+                NavigationLink {
+                    MapView()
+                } label: {
+                    QuickActionButtonLabel(title: "Search Address", systemImage: "mappin.and.ellipse", tint: .green)
+                }
+
+                Button {
+                    // Some Placeholder action
+                } label: {
+                    QuickActionButtonLabel(title: "Ask AI", systemImage: "sparkles", tint: .purple)
+                }
             }
         }
     }
@@ -110,28 +124,24 @@ struct HomeView: View {
 
 // Subviews
 
-private struct QuickActionButton: View {
+private struct QuickActionButtonLabel: View {
     let title: String
     let systemImage: String
     let tint: Color
 
     var body: some View {
-        Button {
-            // Some Placeholder action
-        } label: {
-            VStack(spacing: 8) {
-                Image(systemName: systemImage)
-                    .font(.title2)
-                    .foregroundStyle(tint)
-                Text(title)
-                    .font(.caption)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.primary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+        VStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.title2)
+                .foregroundStyle(tint)
+            Text(title)
+                .font(.caption)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.primary)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
     }
 }
 
