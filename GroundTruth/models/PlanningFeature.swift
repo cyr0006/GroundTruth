@@ -9,16 +9,16 @@ import Foundation
 import MapKit
 
 struct PlanningFeatureProperties: Codable {
-    let zoneCode: String?
-    let zoneDescription: String?
+    let code: String?
+    let description: String?
     let lga: String?
-    let zoneStatus: String?
+    let status: String?
     
     enum CodingKeys: String, CodingKey {
-        case zoneCode = "zone_code"
-        case zoneDescription = "zone_description"
+        case code = "zone_code"
+        case description = "zone_description"
         case lga
-        case zoneStatus = "zone_status"
+        case status = "zone_status"
     }
 }
 

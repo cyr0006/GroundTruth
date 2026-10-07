@@ -228,7 +228,7 @@ struct MapView: View {
     
     private var zonePolygonItems: [PlanningPolygonItem] {
         zoneFeatures.flatMap {feature in
-            let color = PlanningZoneStyle.color(forZoneCode: feature.properties.zoneCode)
+            let color = PlanningZoneStyle.color(forZoneCode: feature.properties.code)
             return feature.polygons.enumerated().map {index, polygon in
                 PlanningPolygonItem(id: "\(feature.id)-\(index)", polygon: polygon, color: color)
                 
@@ -238,7 +238,7 @@ struct MapView: View {
     
     private var overlayPolygonItems: [PlanningPolygonItem] {
         overlayFeatures.flatMap { feature in
-            let color = PlanningZoneStyle.overlayColor(forOverlayCode: feature.properties.zoneCode)
+            let color = PlanningZoneStyle.overlayColor(forOverlayCode: feature.properties.code)
             return feature.polygons.enumerated().map { index, polygon in
                 PlanningPolygonItem(id: "\(feature.id)-\(index)", polygon: polygon, color: color)
             }

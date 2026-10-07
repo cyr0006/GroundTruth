@@ -15,7 +15,7 @@ enum PlanningZoneStyle {
     }
     
     private static func zoneFamily(of code: String) ->  Color? {
-        guard let prefix = zonePrefix(of: code) else {return nil}
+        guard let prefix = codePrefix(of: code) else {return nil}
         
         switch prefix {
         case "GRZ", "RGZ", "NRZ", "TZ", "RLZ", "LDRZ":
@@ -35,14 +35,14 @@ enum PlanningZoneStyle {
         }
     }
     
-    private static func zonePrefix(of code: String) -> String? {
+    private static func codePrefix(of code: String) -> String? {
         let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         let prefix = trimmed.prefix{!$0.isNumber}
         return prefix.isEmpty ? nil : String(prefix)
     }
 
     static func overlayColor(forOverlayCode code: String?) -> Color {
-        guard let code, let prefix = zonePrefix(of: code) else { return .gray }
+        guard let code, let prefix = codePrefix(of: code) else { return .gray }
 
         switch prefix {
         case "HO": return .brown     // Heritage Overlay

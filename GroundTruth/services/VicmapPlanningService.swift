@@ -27,8 +27,8 @@ final class VicmapPlanningService: ObservableObject {
         async let zones = queryFeatures(layerId: Self.overlayLayerId, point: coordinate)
         async let overlays = queryFeatures(layerId: Self.overlayLayerId, point: coordinate)
         
-        let zoneName = try await zones.first?.properties.zoneDescription
-        let overlayNames = try await overlays.compactMap(\.properties.zoneDescription)
+        let zoneName = try await zones.first?.properties.description
+        let overlayNames = try await overlays.compactMap(\.properties.description)
         
         return PropertyPlanningInfo(zoneName: zoneName, overlayNames: overlayNames)
     }
