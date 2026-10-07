@@ -246,7 +246,7 @@ struct MapView: View {
     }
 
     private var overlayLegend: some View {
-        let scodes: [(String, Color)] = [
+        let codes: [(String, Color)] = [
             ("Heritage (HO)", .brown), ("Vegetation Protection (VPO)", .green),
             ("Significant Landscape (SLO)", .teal), ("Environmental Significance (ESO)", .mint),
             ("Bushfire Management (BMO)", .red), ("Flood / Inundation", .indigo),

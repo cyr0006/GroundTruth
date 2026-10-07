@@ -16,7 +16,7 @@ struct PlanningFeatureProperties: Codable {
     
     enum CodingKeys: String, CodingKey {
         case zoneCode = "zone_code"
-        case zoneDescription = "zoneDescription"
+        case zoneDescription = "zone_description"
         case lga
         case zoneStatus = "zone_status"
     }
