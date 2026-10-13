@@ -24,16 +24,28 @@ final class VicmapPlanningService: ObservableObject {
     }
     
     func fetchPlanningInfo(at coordinate: CLLocationCoordinate2D) async throws -> PropertyPlanningInfo {
-        async let zones = queryFeatures(layerId: Self.overlayLayerId, point: coordinate)
+        async let zones = queryFeatures(layerId: Self.zoneLayerId, point: coordinate)
         async let overlays = queryFeatures(layerId: Self.overlayLayerId, point: coordinate)
+        
+        let zoneFeature = try await zones.first
+        let overlayTags: [(name: String, code: String?)] = try await overlays.compactMap{feature in
+            guard let description  = feature.properties.description else {return nil}
+            return (name: description, code: feature.properties.code)
+            
+        }
         
         let zoneName = try await zones.first?.properties.description
         let overlayNames = try await overlays.compactMap(\.properties.description)
+
         
-        return PropertyPlanningInfo(zoneName: zoneName, overlayNames: overlayNames)
+        
+        return PropertyPlanningInfo(
+            zoneName: zoneFeature?.properties.description, zoneCode: zoneFeature?.properties.code, overlayNames: overlayTags.map(\.name), overlayCodes: overlayTags.map(\.code)
+            
+        )
     }
     
-    //Mark: Query Building
+    // MARK: - Query Building
     private func queryFeatures(layerId: Int, envelope region: MKCoordinateRegion) async throws -> [PlanningFeature]{
         
         let minLon = region.center.longitude - region.span.longitudeDelta / 2

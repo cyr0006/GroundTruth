@@ -30,5 +30,7 @@ struct PlanningFeature: Identifiable{
 
 struct PropertyPlanningInfo {
     let zoneName: String?
+    let zoneCode: String?
     let overlayNames: [String]
+    let overlayCodes: [String?]
 }

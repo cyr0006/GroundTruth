@@ -7,6 +7,7 @@
 
 import SwiftUI
 import MapKit
+import CoreLocation
 
 struct MapView: View {
     private static let initialRegion = MKCoordinateRegion(
@@ -29,6 +30,7 @@ struct MapView: View {
     @State private var selectedPlanningInfo: PropertyPlanningInfo?
     @State private var isLoadingPlanningInfo = false
     @State private var viewportFetchTask: Task<Void, Never>?
+    @State private var reverseGeocodeTask: Task<Void, Never>?
 
     private struct PlanningPolygonItem: Identifiable{
         let id: String
@@ -38,72 +40,71 @@ struct MapView: View {
 
     var body: some View{
         ZStack(alignment: .top){
-            Map(position: $cameraPosition){
-                if showZonesLayer {
-                    ForEach(zonePolygonItems) { item in
-                        MapPolygon(item.polygon)
-                            .foregroundStyle(item.color.opacity(0.35))
-                            .stroke(item.color, lineWidth: 2)
+            MapReader {proxy in
+                Map(position: $cameraPosition){
+                    if showZonesLayer {
+                        ForEach(zonePolygonItems) { item in
+                            MapPolygon(item.polygon)
+                                .foregroundStyle(item.color.opacity(0.35))
+                                .stroke(item.color, lineWidth: 2)
+                        }
+                    }
+                    
+                    if showOverlaysLayer{
+                        ForEach(overlayPolygonItems) { item in
+                            MapPolygon(item.polygon)
+                                .foregroundStyle(.clear)
+                                .stroke(item.color, lineWidth: 2)
+                        }
+                    }
+                    
+                    if let selectedAddress, let selectedCoordinate {
+                        Marker(selectedAddress, systemImage: "mappin", coordinate: selectedCoordinate)
+                            .tint(.red)
                     }
                 }
-
-                if showOverlaysLayer{
-                    ForEach(overlayPolygonItems) { item in
-                        MapPolygon(item.polygon)
-                            .foregroundStyle(.clear)
-                            .stroke(item.color, lineWidth: 2)
-                    }
+                
+                // MapCompass dropped: its default top-trailing position collided with the
+                // search bar / layer-toggle toolbar button in that same corner.
+                .mapControls {
+                    MapScaleView()
+                    MapUserLocationButton()
                 }
-
-                if let selectedAddress, let selectedCoordinate {
-                    Marker(selectedAddress, systemImage: "mappin", coordinate: selectedCoordinate)
-                        .tint(.red)
+                .onMapCameraChange (frequency: .onEnd) { context in
+                    currentRegion = context.region
+                    scheduleViewportFetch()
                 }
-            }
-            // MapCompass dropped: its default top-trailing position collided with the
-            // search bar / layer-toggle toolbar button in that same corner.
-            .mapControls {
-                MapScaleView()
-                MapUserLocationButton()
-            }
-            .onMapCameraChange (frequency: .onEnd) { context in
-                currentRegion = context.region
-                scheduleViewportFetch()
-            }
-            .task{
-                scheduleViewportFetch()
-            }
-            .onChange(of: showZonesLayer){_, isOn in
-                if isOn {scheduleViewportFetch()} else {zoneFeatures = []}
-            }
-            .onChange(of: showOverlaysLayer){_, isOn in
-                if isOn {scheduleViewportFetch()} else {overlayFeatures = []}
-            }
-            // bottomLeading, not bottomTrailing: MapUserLocationButton already sits
-            // bottom-trailing, so this avoids stacking on top of it.
-            .overlay(alignment: .bottomLeading) {
-                VStack(alignment: .leading, spacing: 6) {
-                    if showOverlaysLayer {
-                        overlayLegend
+                .task{
+                    scheduleViewportFetch()
+                }
+                .onChange(of: showZonesLayer){_, isOn in
+                    if isOn {scheduleViewportFetch()} else {zoneFeatures = []}
+                }
+                .onChange(of: showOverlaysLayer){_, isOn in
+                    if isOn {scheduleViewportFetch()} else {overlayFeatures = []}
+                }
+                .onTapGesture{screenPoint in
+                    handleMapTap(at: screenPoint, proxy: proxy)
+                }
+                // bottomLeading, not bottomTrailing: MapUserLocationButton already sits
+                // bottom-trailing, so this avoids stacking on top of it.
+                .overlay(alignment: .bottomLeading) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if showOverlaysLayer {
+                            overlayLegend
+                        }
                     }
-                    if showZonesLayer || showOverlaysLayer || selectedPlanningInfo != nil {
-                        Text("Planning data © State of Victoria (data.vic.gov.au)")
-                            .font(.caption2)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(.regularMaterial, in: Capsule())
+                    .padding()
+                }
+                .ignoresSafeArea(edges: .bottom)
+                VStack(spacing: 12){
+                    searchBar
+                    if selectedAddress != nil {
+                        propertyInfoCard
                     }
                 }
                 .padding()
             }
-            .ignoresSafeArea(edges: .bottom)
-            VStack(spacing: 12){
-                searchBar
-                if selectedAddress != nil {
-                    propertyInfoCard
-                }
-            }
-            .padding()
         }
         .navigationTitle("Map")
         .navigationBarTitleDisplayMode(.inline)
@@ -168,16 +169,20 @@ struct MapView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8){
                         if showZonesLayer {
-                            tagView(selectedPlanningInfo?.zoneName ?? "No Zone Data", color: .blue)
+                            tagView(
+                                selectedPlanningInfo?.zoneName ?? "No Zone Data",
+                                color: PlanningStyle.color(forZoneCode: selectedPlanningInfo?.zoneCode)
+                            )
                         }
                         if showOverlaysLayer {
                             let overlayNames = selectedPlanningInfo?.overlayNames ?? []
+                            let overlayCodes = selectedPlanningInfo?.overlayCodes ?? []
+                        
                             if overlayNames.isEmpty {
                                 tagView("no overlays", color: .brown)
                             } else {
-                                ForEach(overlayNames, id: \.self){
-                                    name in
-                                    tagView(name, color: .brown)
+                                ForEach(Array(overlayNames.enumerated()), id: \.offset){ index, name in
+                                    tagView(name, color: PlanningStyle.color(forOverlayCode: overlayCodes[index]))
                                 }
                             }
                         }
@@ -235,6 +240,32 @@ struct MapView: View {
         Task {
             defer {isLoadingPlanningInfo = false}
             selectedPlanningInfo = try? await planningService.fetchPlanningInfo(at: coordinate)
+        }
+    }
+    
+    private func handleMapTap(at point: CGPoint, proxy: MapProxy){
+        guard let coordinate = proxy.convert(point, from: .local) else {return}
+        
+        searchText = ""
+        selectedCoordinate = coordinate
+        selectedAddress = "Resolving Addres"
+        selectedPlanningInfo = nil
+        fetchPlanningInfo(at: coordinate)
+        
+        reverseGeocodeTask?.cancel()
+        reverseGeocodeTask = Task{
+            let geocoder = CLGeocoder()
+            let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+            let placemarks = try? await geocoder.reverseGeocodeLocation(location)
+            guard !Task.isCancelled else {return}
+            
+            let resolved = placemarks?.first.flatMap {placemark in
+                [placemark.subThoroughfare, placemark.thoroughfare, placemark.locality]
+                    .compactMap{$0}
+                    .joined(separator: " ")
+            }
+            selectedAddress = (resolved?.isEmpty == false) ? resolved : "Dropped Pin"
+            searchText = selectedAddress ?? ""
         }
     }
 
