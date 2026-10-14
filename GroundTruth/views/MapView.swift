@@ -21,7 +21,7 @@ struct MapView: View {
     @State private var searchText = ""
     @State private var enabledZoneCategories: Set<PlanningStyle.ZoneCategory> = Set(PlanningStyle.ZoneCategory.allCases)
     @State private var enabledOverlayCategories: Set<PlanningStyle.OverlayCategory> = []
-    @State private var sheetDetent: PresentationDetent = .height(140)
+    @State private var sheetDetent: PresentationDetent = .height(100)
     @State private var selectedAddress: String?
     @State private var selectedCoordinate: CLLocationCoordinate2D?
 
@@ -95,6 +95,7 @@ struct MapView: View {
                 if selectedAddress != nil {
                     propertyInfoCard
                         .padding()
+                    
                 }
             }
         }
@@ -108,7 +109,8 @@ struct MapView: View {
                 .presentationDetents([.height(140), .medium, .large], selection: $sheetDetent)
                 .presentationDragIndicator(.visible)
                 .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-                .interactiveDismissDisabled()
+                //.interactiveDismissDisabled()
+                
         }
     }
 
@@ -147,6 +149,7 @@ struct MapView: View {
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 24)
+            
             }
         }
     }
@@ -271,7 +274,7 @@ struct MapView: View {
     }
 
     private var propertyInfoCard: some View{
-        VStack(alignment: .leading, spacing: 6){
+        VStack(alignment: .leading, spacing: 5){
             Text(selectedAddress ?? "")
                 .font(.subheadline)
                 .fontWeight(.semibold)
@@ -312,7 +315,6 @@ struct MapView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .shadow(radius: 2)
     }
 
