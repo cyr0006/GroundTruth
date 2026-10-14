@@ -37,6 +37,18 @@ enum PlanningStyle {
             case .other: return .gray
             }
         }
+
+        var description: String {
+            switch self {
+            case .residential: return "Land set aside mainly for housing, at a range of densities."
+            case .commercial: return "Land used for retail, offices, and other commercial activity."
+            case .industrial: return "Land used for manufacturing, warehousing, and other industrial activity."
+            case .publicUse: return "Public land such as parks, reserves, utilities, or conservation areas."
+            case .rural: return "Farming, rural living, or conservation land outside the main urban area."
+            case .mixedUse: return "Land allowing a mix of housing, retail, and commercial uses together."
+            case .other: return "An uncategorised or less common planning zone."
+            }
+        }
     }
 
     enum OverlayCategory: String, CaseIterable, Identifiable, Hashable {
@@ -73,6 +85,21 @@ enum PlanningStyle {
             case .contributionsPlan: return .yellow
             case .publicAcquisition: return .pink
             case .other: return .orange
+            }
+        }
+
+        var description: String {
+            switch self {
+            case .heritage: return "Protects places of heritage significance — changes to buildings or demolition may need a permit."
+            case .vegetationProtection: return "Protects native vegetation — removing or lopping trees may need a permit."
+            case .significantLandscape: return "Protects valued landscapes or views — development must respect the area's character."
+            case .environmentalSignificance: return "Protects environmentally sensitive areas such as waterways or habitats."
+            case .bushfireManagement: return "Identifies bushfire-prone land — extra building and vegetation controls may apply."
+            case .floodInundation: return "Identifies land at risk of flooding — development may need extra flood-resistant conditions."
+            case .designAndDevelopment: return "Sets extra design requirements for buildings, like height or appearance, in this area."
+            case .contributionsPlan: return "Requires development to contribute to local infrastructure, like roads or drainage."
+            case .publicAcquisition: return "Marks land that may be acquired by a public authority in future, e.g. for a road or school."
+            case .other: return "An uncategorised or less common planning overlay."
             }
         }
     }

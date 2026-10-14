@@ -24,6 +24,7 @@ struct MapView: View {
     @State private var sheetDetent: PresentationDetent = .height(100)
     @State private var selectedAddress: String?
     @State private var selectedCoordinate: CLLocationCoordinate2D?
+    @State private var showPropertyProfile = false
 
     @StateObject private var planningService = VicmapPlanningService()
     @State private var zoneFeatures: [PlanningFeature] = []
@@ -96,6 +97,9 @@ struct MapView: View {
             if selectedAddress != nil {
                 propertyInfoCard
                     .padding()
+                    .onTapGesture {
+                        showPropertyProfile = true
+                    }
             }
         }
         .navigationTitle("Map")
@@ -110,6 +114,9 @@ struct MapView: View {
                 .presentationBackgroundInteraction(.enabled(upThrough: .medium))
                 //.interactiveDismissDisabled()
                 
+        }
+        .navigationDestination(isPresented: $showPropertyProfile) {
+            PropertyProfileView(address: selectedAddress ?? "", planningInfo: selectedPlanningInfo)
         }
     }
 
@@ -273,11 +280,17 @@ struct MapView: View {
     }
 
     private var propertyInfoCard: some View{
-        VStack(alignment: .leading, spacing: 5){
-            Text(selectedAddress ?? "")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .lineLimit(1)
+        VStack(alignment: .leading, spacing: 6){
+            HStack{
+                Text(selectedAddress ?? "")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .lineLimit(1)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             if isLoadingPlanningInfo{
                 ProgressView()
