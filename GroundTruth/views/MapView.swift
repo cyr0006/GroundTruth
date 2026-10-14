@@ -315,6 +315,7 @@ struct MapView: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .shadow(radius: 2)
+        .background(.thinMaterial, in:RoundedRectangle(cornerRadius: 20))
     }
 
     private func tagView(_ text: String, color: Color) -> some View {
