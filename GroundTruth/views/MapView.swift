@@ -387,8 +387,8 @@ struct MapView: View {
 
     private var zonePolygonItems: [PlanningPolygonItem] {
         zoneFeatures.flatMap {feature in
-            let category = PlanningStyle.zoneCategory(forZoneCode: feature.properties.code)
-            guard enabledZoneCategories.contains(category) else {return []}
+            let category: PlanningStyle.ZoneCategory = PlanningStyle.zoneCategory(forZoneCode: feature.properties.code)
+            guard enabledZoneCategories.contains(category) else {return [PlanningPolygonItem]()}
             let color = category.color
             return feature.polygons.enumerated().map {index, polygon in
                 PlanningPolygonItem(id: "\(feature.id)-\(index)", polygon: polygon, color: color)
@@ -399,7 +399,7 @@ struct MapView: View {
     private var overlayPolygonItems: [PlanningPolygonItem] {
         overlayFeatures.flatMap { feature in
             let category = PlanningStyle.overlayCategory(forOverlayCode: feature.properties.code)
-            guard enabledOverlayCategories.contains(category) else {return []}
+            guard enabledOverlayCategories.contains(category) else {return [PlanningPolygonItem]()}
             let color = category.color
             return feature.polygons.enumerated().map { index, polygon in
                 PlanningPolygonItem(id: "\(feature.id)-\(index)", polygon: polygon, color: color)
