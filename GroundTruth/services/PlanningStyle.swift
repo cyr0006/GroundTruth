@@ -89,6 +89,7 @@ enum PlanningStyle {
             return .industrial
         case "PUZ", "PCRZ", "PPRZ":
             return .publicUse
+            return .publicUse
         case "FZ", "RCZ", "RUZ":
             return .rural
         case "MUZ":
