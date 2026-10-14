@@ -91,12 +91,11 @@ struct MapView: View {
                     handleMapTap(at: screenPoint, proxy: proxy)
                 }
                 .ignoresSafeArea(edges: .bottom)
+            }
 
-                if selectedAddress != nil {
-                    propertyInfoCard
-                        .padding()
-                    
-                }
+            if selectedAddress != nil {
+                propertyInfoCard
+                    .padding()
             }
         }
         .navigationTitle("Map")
