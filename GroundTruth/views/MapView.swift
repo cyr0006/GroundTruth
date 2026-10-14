@@ -19,8 +19,9 @@ struct MapView: View {
     @State private var currentRegion = initialRegion
 
     @State private var searchText = ""
-    @State private var showZonesLayer = true
-    @State private var showOverlaysLayer = false
+    @State private var enabledZoneCategories: Set<PlanningStyle.ZoneCategory> = Set(PlanningStyle.ZoneCategory.allCases)
+    @State private var enabledOverlayCategories: Set<PlanningStyle.OverlayCategory> = []
+    @State private var sheetDetent: PresentationDetent = .height(140)
     @State private var selectedAddress: String?
     @State private var selectedCoordinate: CLLocationCoordinate2D?
 
@@ -38,6 +39,9 @@ struct MapView: View {
         let color: Color
     }
 
+    private var showZonesLayer: Bool { !enabledZoneCategories.isEmpty }
+    private var showOverlaysLayer: Bool { !enabledOverlayCategories.isEmpty }
+
     var body: some View{
         ZStack(alignment: .top){
             MapReader {proxy in
@@ -49,7 +53,7 @@ struct MapView: View {
                                 .stroke(item.color, lineWidth: 2)
                         }
                     }
-                    
+
                     if showOverlaysLayer{
                         ForEach(overlayPolygonItems) { item in
                             MapPolygon(item.polygon)
@@ -57,13 +61,13 @@ struct MapView: View {
                                 .stroke(item.color, lineWidth: 2)
                         }
                     }
-                    
+
                     if let selectedAddress, let selectedCoordinate {
                         Marker(selectedAddress, systemImage: "mappin", coordinate: selectedCoordinate)
                             .tint(.red)
                     }
                 }
-                
+
                 // MapCompass dropped: its default top-trailing position collided with the
                 // search bar / layer-toggle toolbar button in that same corner.
                 .mapControls {
@@ -77,54 +81,166 @@ struct MapView: View {
                 .task{
                     scheduleViewportFetch()
                 }
-                .onChange(of: showZonesLayer){_, isOn in
-                    if isOn {scheduleViewportFetch()} else {zoneFeatures = []}
+                .onChange(of: enabledZoneCategories){_, categories in
+                    if !categories.isEmpty {scheduleViewportFetch()} else {zoneFeatures = []}
                 }
-                .onChange(of: showOverlaysLayer){_, isOn in
-                    if isOn {scheduleViewportFetch()} else {overlayFeatures = []}
+                .onChange(of: enabledOverlayCategories){_, categories in
+                    if !categories.isEmpty {scheduleViewportFetch()} else {overlayFeatures = []}
                 }
                 .onTapGesture{screenPoint in
                     handleMapTap(at: screenPoint, proxy: proxy)
                 }
-                // bottomLeading, not bottomTrailing: MapUserLocationButton already sits
-                // bottom-trailing, so this avoids stacking on top of it.
-                .overlay(alignment: .bottomLeading) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        if showOverlaysLayer {
-                            overlayLegend
-                        }
-                    }
-                    .padding()
-                }
                 .ignoresSafeArea(edges: .bottom)
-                VStack(spacing: 12){
-                    searchBar
-                    if selectedAddress != nil {
-                        propertyInfoCard
-                    }
+
+                if selectedAddress != nil {
+                    propertyInfoCard
+                        .padding()
                 }
-                .padding()
             }
         }
         .navigationTitle("Map")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar{
-            ToolbarItem(placement: .topBarTrailing){
-                Menu{
-                    Toggle(isOn: $showZonesLayer){
-                        Label("Planning Zones", systemImage: "square.on.square")
-                    }
-                    Toggle(isOn: $showOverlaysLayer){
-                        Label("Overlays", systemImage: "square.stack.3d.up")
-                    }
-                } label: {
-                    Image(systemName: "square.3.layers.3d")
-                }
-            }
-        }
         // This screen is pushed (from Home's "Search Address" quick action), not a
         // tab root, so the bottom tab bar would otherwise still show underneath it.
         .toolbar(.hidden, for: .tabBar)
+        .sheet(isPresented: .constant(true)) {
+            mapBottomPanel
+                .presentationDetents([.height(140), .medium, .large], selection: $sheetDetent)
+                .presentationDragIndicator(.visible)
+                .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+                .interactiveDismissDisabled()
+        }
+    }
+
+    private var mapBottomPanel: some View {
+        VStack(spacing: 0){
+            searchBar
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 12)
+
+            ScrollView{
+                VStack(alignment: .leading, spacing: 24){
+                    categorySection(
+                        title: "Planning Zones",
+                        allSelected: allZonesSelectedBinding,
+                        rows: PlanningStyle.ZoneCategory.allCases
+                    ) { category in
+                        categoryRow(
+                            label: category.label,
+                            color: category.color,
+                            isOn: zoneCategoryBinding(for: category)
+                        )
+                    }
+
+                    categorySection(
+                        title: "Planning Overlays",
+                        allSelected: allOverlaysSelectedBinding,
+                        rows: PlanningStyle.OverlayCategory.allCases
+                    ) { category in
+                        categoryRow(
+                            label: category.label,
+                            color: category.color,
+                            isOn: overlayCategoryBinding(for: category)
+                        )
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 24)
+            }
+        }
+    }
+
+    private func categorySection<Category: Hashable & Identifiable, Content: View>(
+        title: String,
+        allSelected: Binding<Bool>,
+        rows: [Category],
+        @ViewBuilder row: @escaping (Category) -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 4){
+            HStack{
+                Text(title)
+                    .font(.headline)
+                Spacer()
+                Button {
+                    allSelected.wrappedValue.toggle()
+                } label: {
+                    HStack(spacing: 4){
+                        Image(systemName: allSelected.wrappedValue ? "checkmark.square.fill" : "square")
+                        Text("Select All")
+                    }
+                    .font(.caption)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+            }
+            .padding(.bottom, 4)
+
+            VStack(spacing: 0){
+                ForEach(rows) { category in
+                    row(category)
+                    if category.id != rows.last?.id {
+                        Divider()
+                    }
+                }
+            }
+        }
+    }
+
+    private func categoryRow(label: String, color: Color, isOn: Binding<Bool>) -> some View {
+        Button {
+            isOn.wrappedValue.toggle()
+        } label: {
+            HStack(spacing: 10){
+                Circle()
+                    .fill(color)
+                    .frame(width: 14, height: 14)
+                Text(label)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+                Spacer()
+                Image(systemName: isOn.wrappedValue ? "checkmark.square.fill" : "square")
+                    .foregroundStyle(isOn.wrappedValue ? color : .secondary)
+            }
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func zoneCategoryBinding(for category: PlanningStyle.ZoneCategory) -> Binding<Bool> {
+        Binding(
+            get: { enabledZoneCategories.contains(category) },
+            set: { isOn in
+                if isOn { enabledZoneCategories.insert(category) } else { enabledZoneCategories.remove(category) }
+            }
+        )
+    }
+
+    private func overlayCategoryBinding(for category: PlanningStyle.OverlayCategory) -> Binding<Bool> {
+        Binding(
+            get: { enabledOverlayCategories.contains(category) },
+            set: { isOn in
+                if isOn { enabledOverlayCategories.insert(category) } else { enabledOverlayCategories.remove(category) }
+            }
+        )
+    }
+
+    private var allZonesSelectedBinding: Binding<Bool> {
+        Binding(
+            get: { enabledZoneCategories.count == PlanningStyle.ZoneCategory.allCases.count },
+            set: { isOn in
+                enabledZoneCategories = isOn ? Set(PlanningStyle.ZoneCategory.allCases) : []
+            }
+        )
+    }
+
+    private var allOverlaysSelectedBinding: Binding<Bool> {
+        Binding(
+            get: { enabledOverlayCategories.count == PlanningStyle.OverlayCategory.allCases.count },
+            set: { isOn in
+                enabledOverlayCategories = isOn ? Set(PlanningStyle.OverlayCategory.allCases) : []
+            }
+        )
     }
 
     private var searchBar: some View {
@@ -177,7 +293,7 @@ struct MapView: View {
                         if showOverlaysLayer {
                             let overlayNames = selectedPlanningInfo?.overlayNames ?? []
                             let overlayCodes = selectedPlanningInfo?.overlayCodes ?? []
-                        
+
                             if overlayNames.isEmpty {
                                 tagView("no overlays", color: .brown)
                             } else {
@@ -242,23 +358,23 @@ struct MapView: View {
             selectedPlanningInfo = try? await planningService.fetchPlanningInfo(at: coordinate)
         }
     }
-    
+
     private func handleMapTap(at point: CGPoint, proxy: MapProxy){
         guard let coordinate = proxy.convert(point, from: .local) else {return}
-        
+
         searchText = ""
         selectedCoordinate = coordinate
         selectedAddress = "Resolving Addres"
         selectedPlanningInfo = nil
         fetchPlanningInfo(at: coordinate)
-        
+
         reverseGeocodeTask?.cancel()
         reverseGeocodeTask = Task{
             let geocoder = CLGeocoder()
             let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
             let placemarks = try? await geocoder.reverseGeocodeLocation(location)
             guard !Task.isCancelled else {return}
-            
+
             let resolved = placemarks?.first.flatMap {placemark in
                 [placemark.subThoroughfare, placemark.thoroughfare, placemark.locality]
                     .compactMap{$0}
@@ -271,40 +387,24 @@ struct MapView: View {
 
     private var zonePolygonItems: [PlanningPolygonItem] {
         zoneFeatures.flatMap {feature in
-            let color = PlanningStyle.color(forZoneCode: feature.properties.code)
+            let category = PlanningStyle.zoneCategory(forZoneCode: feature.properties.code)
+            guard enabledZoneCategories.contains(category) else {return []}
+            let color = category.color
             return feature.polygons.enumerated().map {index, polygon in
                 PlanningPolygonItem(id: "\(feature.id)-\(index)", polygon: polygon, color: color)
-
             }
         }
     }
 
     private var overlayPolygonItems: [PlanningPolygonItem] {
         overlayFeatures.flatMap { feature in
-            let color = PlanningStyle.color(forOverlayCode: feature.properties.code)
+            let category = PlanningStyle.overlayCategory(forOverlayCode: feature.properties.code)
+            guard enabledOverlayCategories.contains(category) else {return []}
+            let color = category.color
             return feature.polygons.enumerated().map { index, polygon in
                 PlanningPolygonItem(id: "\(feature.id)-\(index)", polygon: polygon, color: color)
             }
         }
-    }
-
-    private var overlayLegend: some View {
-        let codes: [(String, Color)] = [
-            ("Heritage (HO)", .brown), ("Vegetation Protection (VPO)", .green),
-            ("Significant Landscape (SLO)", .teal), ("Environmental Significance (ESO)", .mint),
-            ("Bushfire Management (BMO)", .red), ("Flood / Inundation", .indigo),
-            ("Design & Development (DDO)", .purple), ("Other", .orange)
-        ]
-        return VStack(alignment: .leading, spacing: 4) {
-            ForEach(codes, id: \.0) { label, color in
-                HStack(spacing: 6) {
-                    Circle().fill(color).frame(width: 8, height: 8)
-                    Text(label).font(.caption2)
-                }
-            }
-        }
-        .padding(8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
     }
 
 }
