@@ -27,7 +27,7 @@ enum ProjectStatus: String, CaseIterable, Codable, Identifiable {
 }
 
 /// Metadata for a file uploaded to Firebase Storage for a project. The file bytes
-/// themselves live in Storage at `storagePath` — this struct is just what's stored
+/// themselves live in Storage at `storagePath`this struct is just what's stored
 /// on the Firestore project document.
 struct ProjectDocument: Identifiable, Hashable, Codable {
     var id: String
