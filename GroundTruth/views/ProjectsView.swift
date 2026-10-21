@@ -307,7 +307,7 @@ struct ProjectDetailView: View {
                 isShowingDueDatePicker.toggle()
             } label: {
                 Image(systemName: newTaskDueDate == nil ? "calendar.badge.plus" : "calendar.badge.clock")
-                    .foregroundStyle(newTaskDueDate == nil ? .secondary : .accentColor)
+                    .foregroundStyle(newTaskDueDate == nil ? .secondary : Color.accentColor)
             }
             .buttonStyle(.plain)
 
