@@ -305,13 +305,13 @@ struct ProjectDetailView: View {
             HStack {
                 TextField("Add a step", text: $newTaskTitle)
 
-                Button {
-                    isShowingDueDatePicker.toggle()
-                } label: {
-                    Image(systemName: newTaskDueDate == nil ? "calendar.badge.plus" : "calendar.badge.clock")
-                        .foregroundStyle(newTaskDueDate == nil ? .secondary : .accentColor)
-                }
-                .buttonStyle(.plain)
+            Button {
+                isShowingDueDatePicker.toggle()
+            } label: {
+                Image(systemName: newTaskDueDate == nil ? "calendar.badge.plus" : "calendar.badge.clock")
+                    .foregroundStyle(newTaskDueDate == nil ? .secondary : Color.accentColor)
+            }
+            .buttonStyle(.plain)
 
                 Button {
                     addTask(to: project)
