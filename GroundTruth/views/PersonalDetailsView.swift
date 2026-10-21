@@ -33,12 +33,14 @@ struct PersonalDetailsView: View {
             if isSaving {
                 ProgressView()
             } else {
-                Button(isEditing ? "Save" : "Edit") {
+                Button {
                     if isEditing {
                         Task { await save() }
                     } else {
                         isEditing = true
                     }
+                } label: {
+                    Text(isEditing ? "Save" : "Edit")
                 }
             }
         }
