@@ -216,7 +216,13 @@ final class ProjectStore: ObservableObject{
         }
 
         var reordered = project.tasks
-        reordered.move(fromOffsets: source, toOffset: destination)
+        let movingTasks = source.map { reordered[$0] }
+        for index in source.sorted(by: >) {
+            reordered.remove(at: index)
+        }
+        let adjustedDestination = destination - source.filter { $0 < destination }.count
+        reordered.insert(contentsOf: movingTasks, at: adjustedDestination)
+
         try await updateTasksField(reordered, projectId: projectId)
     }
 
