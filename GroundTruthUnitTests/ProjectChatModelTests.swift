@@ -12,7 +12,7 @@ import Testing
 final class  ProjectChatViewModelTests {
     @Test func testSend_blankInput_doesNothing(){
         let project = Project.sampleProjects[0]
-        let viewModel = ProjectChatViewModel(project: project)
+        let viewModel = ProjectChatViewModel(project: project, projectStore: ProjectStore())
         
         viewModel.send("    ")
         
