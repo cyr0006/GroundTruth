@@ -105,22 +105,23 @@ enum PlanningStyle {
     }
 
     static func zoneCategory(forZoneCode code: String?) -> ZoneCategory {
-        guard let code, let prefix = codePrefix(of: code) else { return .other }
+        guard let code else { return .other }
+        let normalized = normalize(code)
+        guard !normalized.isEmpty else { return .other }
 
-        switch prefix {
-        case "GRZ", "RGZ", "NRZ", "TZ", "RLZ", "LDRZ":
+        if hasAnyPrefix(normalized, ["GRZ", "RGZ", "NRZ", "TZ", "RLZ", "LDRZ"]) {
             return .residential
-        case "C1Z", "C2Z":
+        } else if hasAnyPrefix(normalized, ["C1Z", "C2Z"]) {
             return .commercial
-        case "IN1Z", "IN2Z", "IN3Z":
+        } else if hasAnyPrefix(normalized, ["IN1Z", "IN2Z", "IN3Z"]) {
             return .industrial
-        case "PUZ", "PCRZ", "PPRZ":
+        } else if hasAnyPrefix(normalized, ["PUZ", "PCRZ", "PPRZ"]) {
             return .publicUse
-        case "FZ", "RCZ", "RUZ":
+        } else if hasAnyPrefix(normalized, ["FZ", "RCZ", "RUZ"]) {
             return .rural
-        case "MUZ":
+        } else if hasAnyPrefix(normalized, ["MUZ"]) {
             return .mixedUse
-        default:
+        } else {
             return .other
         }
     }
@@ -130,19 +131,30 @@ enum PlanningStyle {
     }
 
     static func overlayCategory(forOverlayCode code: String?) -> OverlayCategory {
-        guard let code, let prefix = codePrefix(of: code) else { return .other }
+        guard let code else { return .other }
+        let normalized = normalize(code)
+        guard !normalized.isEmpty else { return .other }
 
-        switch prefix {
-        case "HO": return .heritage
-        case "VPO": return .vegetationProtection
-        case "SLO": return .significantLandscape
-        case "ESO": return .environmentalSignificance
-        case "BMO": return .bushfireManagement
-        case "LSIO", "SBO", "FO": return .floodInundation
-        case "DDO": return .designAndDevelopment
-        case "DCPO", "ICPO": return .contributionsPlan
-        case "PAO": return .publicAcquisition
-        default: return .other
+        if hasAnyPrefix(normalized, ["HO"]) {
+            return .heritage
+        } else if hasAnyPrefix(normalized, ["VPO"]) {
+            return .vegetationProtection
+        } else if hasAnyPrefix(normalized, ["SLO"]) {
+            return .significantLandscape
+        } else if hasAnyPrefix(normalized, ["ESO"]) {
+            return .environmentalSignificance
+        } else if hasAnyPrefix(normalized, ["BMO"]) {
+            return .bushfireManagement
+        } else if hasAnyPrefix(normalized, ["LSIO", "SBO", "FO"]) {
+            return .floodInundation
+        } else if hasAnyPrefix(normalized, ["DDO"]) {
+            return .designAndDevelopment
+        } else if hasAnyPrefix(normalized, ["DCPO", "ICPO"]) {
+            return .contributionsPlan
+        } else if hasAnyPrefix(normalized, ["PAO"]) {
+            return .publicAcquisition
+        } else {
+            return .other
         }
     }
 
@@ -150,9 +162,11 @@ enum PlanningStyle {
         code == nil ? .gray : overlayCategory(forOverlayCode: code).color
     }
 
-    private static func codePrefix(of code: String) -> String? {
-        let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        let prefix = trimmed.prefix { !$0.isNumber }
-        return prefix.isEmpty ? nil : String(prefix)
+    private static func normalize(_ code: String) -> String {
+        code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    }
+
+    private static func hasAnyPrefix(_ code: String, _ prefixes: [String]) -> Bool {
+        prefixes.contains { code.hasPrefix($0) }
     }
 }
