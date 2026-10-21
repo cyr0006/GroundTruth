@@ -11,7 +11,7 @@ import FirebaseAuth
 struct ProfileView: View {
     @EnvironmentObject private var projectStore: ProjectStore
     @EnvironmentObject private var authService: AuthService
-    @State private var notificationsEnabled = true
+    @AppStorage(NotificationService.enabledKey) private var notificationsEnabled = true
     @State private var signoutConfirmationShowing = false
     
     private var displayName: String {
@@ -51,6 +51,13 @@ struct ProfileView: View {
                 Section("Preferences") {
                     Toggle(isOn: $notificationsEnabled) {
                         Label("Notifications", systemImage: "bell")
+                    }
+                    .onChange(of: notificationsEnabled) { _, isEnabled in
+                        if isEnabled {
+                            Task { _ = await NotificationService.requestAuthorizationIfNeeded() }
+                        } else {
+                            NotificationService.cancelAllReminders()
+                        }
                     }
                     NavigationLink {
                         Text("Appearance settings coming soon.")

@@ -37,7 +37,7 @@ struct HomeView: View {
                 ProjectDetailView(projectId: project.id ?? "")
             }
             .navigationDestination(item: $selectedProjectForChat) { project in
-                ProjectChatView(project: project)
+                ProjectChatView(project: project, projectStore: projectStore)
             }
             .sheet(isPresented: $isShowingNewProject) {
                 NewProjectView()

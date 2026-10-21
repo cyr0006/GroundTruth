@@ -12,9 +12,9 @@ struct ProjectChatView: View {
     @State private var draft = ""
     @FocusState private var isInputFocused: Bool
 
-    init(project: Project) {
+    init(project: Project, projectStore: ProjectStore) {
         self.project = project
-        _viewModel = StateObject(wrappedValue: ProjectChatViewModel(project: project))
+        _viewModel = StateObject(wrappedValue: ProjectChatViewModel(project: project, projectStore: projectStore))
     }
 
     var body: some View {
@@ -142,6 +142,6 @@ struct ProjectChatView: View {
 
 #Preview {
     NavigationStack {
-        ProjectChatView(project: Project.sampleProjects[0])
+        ProjectChatView(project: Project.sampleProjects[0], projectStore: ProjectStore())
     }
 }

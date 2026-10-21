@@ -210,6 +210,16 @@ final class ProjectStore: ObservableObject{
         }
     }
 
+    func moveTasks(in project: Project, fromOffsets source: IndexSet, toOffset destination: Int) async throws {
+        guard let projectId = project.id, !projectId.isEmpty else {
+            throw AppError.projectNotFound
+        }
+
+        var reordered = project.tasks
+        reordered.move(fromOffsets: source, toOffset: destination)
+        try await updateTasksField(reordered, projectId: projectId)
+    }
+
     func deleteTask(_ task: ProjectTask, from project: Project) async throws {
         guard let projectId = project.id, !projectId.isEmpty else {
             throw AppError.projectNotFound

@@ -145,6 +145,7 @@ struct ProjectDetailView: View {
     @State private var isShowingDueDatePicker = false
     @State private var isAddingTask = false
     @State private var isShowingEditProject = false
+    @State private var isEditingTaskOrder = false
     @State private var errorMessage: String?
 
     // Looked up live from the store (rather than held as a static snapshot) so
@@ -166,7 +167,7 @@ struct ProjectDetailView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Section("Roadmap & Checklist") {
+                    Section {
                         ProgressView(value: project.progress) {
                             Text("\(project.tasksCompleted) of \(project.totalTasks) tasks complete")
                                 .font(.caption)
@@ -178,6 +179,9 @@ struct ProjectDetailView: View {
                         } else {
                             ForEach(project.tasks) { task in
                                 taskRow(task, project: project)
+                            }
+                            .onMove { source, destination in
+                                moveTasks(in: project, fromOffsets: source, toOffset: destination)
                             }
                         }
 
@@ -221,11 +225,23 @@ struct ProjectDetailView: View {
                                 .font(.caption)
                             }
                         }
+                    } header: {
+                        HStack {
+                            Text("Roadmap & Checklist")
+                            Spacer()
+                            if isEditingTaskOrder || project.tasks.count > 1 {
+                                Button(isEditingTaskOrder ? "Done" : "Reorder") {
+                                    isEditingTaskOrder.toggle()
+                                }
+                                .font(.caption)
+                            }
+                        }
+                        .textCase(nil)
                     }
 
                     Section("AI Chat") {
                         NavigationLink {
-                            ProjectChatView(project: project)
+                            ProjectChatView(project: project, projectStore: projectStore)
                         } label: {
                             Label("Ask about this project", systemImage: "sparkles")
                         }
@@ -286,6 +302,7 @@ struct ProjectDetailView: View {
                         }
                     }
                 }
+                .environment(\.editMode, .constant(isEditingTaskOrder ? .active : .inactive))
                 .navigationTitle(project.name)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -492,6 +509,16 @@ struct ProjectDetailView: View {
         Task {
             do {
                 try await projectStore.deleteTask(task, from: project)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func moveTasks(in project: Project, fromOffsets source: IndexSet, toOffset destination: Int) {
+        Task {
+            do {
+                try await projectStore.moveTasks(in: project, fromOffsets: source, toOffset: destination)
             } catch {
                 errorMessage = error.localizedDescription
             }

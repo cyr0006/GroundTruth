@@ -10,7 +10,19 @@ import UserNotifications
 /// day before a task is due, since by the time it's actually due it's too late
 /// to be useful.
 enum NotificationService {
+    static let enabledKey = "notificationsEnabled"
+
+    /// Mirrors the default `@AppStorage(enabledKey) var notificationsEnabled = true` in
+    /// ProfileView — reads the raw UserDefaults value so non-view code sees the same
+    /// "on by default until the user turns it off" behavior.
+    static var isEnabled: Bool {
+        let defaults = UserDefaults.standard
+        return defaults.object(forKey: enabledKey) == nil ? true : defaults.bool(forKey: enabledKey)
+    }
+
     static func requestAuthorizationIfNeeded() async -> Bool {
+        guard isEnabled else { return false }
+
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
 
@@ -26,6 +38,10 @@ enum NotificationService {
         default:
             return false
         }
+    }
+
+    static func cancelAllReminders() {
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }
 
     static func scheduleDueDateReminder(taskId: String, taskTitle: String, projectName: String, dueDate: Date) {
