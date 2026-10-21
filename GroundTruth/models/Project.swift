@@ -48,6 +48,7 @@ struct ProjectTask: Identifiable, Hashable, Codable {
     var id: String
     var title: String
     var isCompleted: Bool
+    var dueDate: Date? = nil
 }
 
 /// A file picked on-device but not yet uploaded — the input to `ProjectStore`'s
@@ -70,6 +71,7 @@ struct Project: Identifiable,Hashable, Codable {
     var documents: [ProjectDocument]
     var notes: [ProjectNote]
     var tasks: [ProjectTask]
+    var chatMessages: [ChatMessage]
 
     var id: String?{
         projID ?? ""
@@ -84,7 +86,7 @@ struct Project: Identifiable,Hashable, Codable {
         return Double(tasksCompleted) / Double(totalTasks)
     }
 
-    init(projID: String? = nil, ownerId: String, name: String, projectDescription: String, address: String, status: ProjectStatus, documents: [ProjectDocument] = [], notes: [ProjectNote] = [], tasks: [ProjectTask] = []) {
+    init(projID: String? = nil, ownerId: String, name: String, projectDescription: String, address: String, status: ProjectStatus, documents: [ProjectDocument] = [], notes: [ProjectNote] = [], tasks: [ProjectTask] = [], chatMessages: [ChatMessage] = []) {
         self.projID = projID
         self.ownerId = ownerId
         self.name = name
@@ -94,6 +96,7 @@ struct Project: Identifiable,Hashable, Codable {
         self.documents = documents
         self.notes = notes
         self.tasks = tasks
+        self.chatMessages = chatMessages
     }
 }
 

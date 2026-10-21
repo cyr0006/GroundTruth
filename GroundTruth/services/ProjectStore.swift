@@ -170,7 +170,7 @@ final class ProjectStore: ObservableObject{
         ])
     }
 
-    func addTask(title: String, to project: Project) async throws {
+    func addTask(title: String, dueDate: Date? = nil, to project: Project) async throws {
         guard let projectId = project.id, !projectId.isEmpty else {
             throw AppError.projectNotFound
         }
@@ -180,9 +180,19 @@ final class ProjectStore: ObservableObject{
             throw AppError.invalidForm("Enter a step description.")
         }
 
+        let newTask = ProjectTask(id: UUID().uuidString, title: cleaned, isCompleted: false, dueDate: dueDate)
         var updatedTasks = project.tasks
-        updatedTasks.append(ProjectTask(id: UUID().uuidString, title: cleaned, isCompleted: false))
+        updatedTasks.append(newTask)
         try await updateTasksField(updatedTasks, projectId: projectId)
+
+        if let dueDate, await NotificationService.requestAuthorizationIfNeeded() {
+            NotificationService.scheduleDueDateReminder(
+                taskId: newTask.id,
+                taskTitle: newTask.title,
+                projectName: project.name,
+                dueDate: dueDate
+            )
+        }
     }
 
     func setTaskCompleted(_ task: ProjectTask, isCompleted: Bool, in project: Project) async throws {
@@ -194,12 +204,18 @@ final class ProjectStore: ObservableObject{
         guard let index = updatedTasks.firstIndex(where: { $0.id == task.id }) else { return }
         updatedTasks[index].isCompleted = isCompleted
         try await updateTasksField(updatedTasks, projectId: projectId)
+
+        if isCompleted {
+            NotificationService.cancelReminder(taskId: task.id)
+        }
     }
 
     func deleteTask(_ task: ProjectTask, from project: Project) async throws {
         guard let projectId = project.id, !projectId.isEmpty else {
             throw AppError.projectNotFound
         }
+
+        NotificationService.cancelReminder(taskId: task.id)
 
         let updatedTasks = project.tasks.filter { $0.id != task.id }
         try await updateTasksField(updatedTasks, projectId: projectId)
@@ -254,6 +270,16 @@ final class ProjectStore: ObservableObject{
 
         let updatedNotes = project.notes.filter { $0.id != note.id }
         try await updateNotesField(updatedNotes, projectId: projectId)
+    }
+
+    func setChatMessages(_ messages: [ChatMessage], for project: Project) async throws {
+        guard let projectId = project.id, !projectId.isEmpty else {
+            throw AppError.projectNotFound
+        }
+
+        let encoded = try messages.map { try Firestore.Encoder().encode($0) }
+        try await database.collection(Project.collectionName).document(projectId)
+            .updateData(["chatMessages": encoded])
     }
 
     func deleteProject(_ project: Project) async throws {

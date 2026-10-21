@@ -141,6 +141,8 @@ struct ProjectDetailView: View {
     @State private var newNoteText = ""
     @State private var isAddingNote = false
     @State private var newTaskTitle = ""
+    @State private var newTaskDueDate: Date?
+    @State private var isShowingDueDatePicker = false
     @State private var isAddingTask = false
     @State private var isShowingEditProject = false
     @State private var errorMessage: String?
@@ -181,6 +183,15 @@ struct ProjectDetailView: View {
 
                         HStack {
                             TextField("Add a step", text: $newTaskTitle)
+
+                            Button {
+                                isShowingDueDatePicker.toggle()
+                            } label: {
+                                Image(systemName: newTaskDueDate == nil ? "calendar.badge.plus" : "calendar.badge.clock")
+                                    .foregroundStyle(newTaskDueDate == nil ? .secondary : .accentColor)
+                            }
+                            .buttonStyle(.plain)
+
                             Button {
                                 addTask(to: project)
                             } label: {
@@ -191,6 +202,24 @@ struct ProjectDetailView: View {
                                 }
                             }
                             .disabled(isAddingTask || newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+
+                        if isShowingDueDatePicker {
+                            DatePicker(
+                                "Due date",
+                                selection: Binding(
+                                    get: { newTaskDueDate ?? Date() },
+                                    set: { newTaskDueDate = $0 }
+                                ),
+                                displayedComponents: .date
+                            )
+
+                            if newTaskDueDate != nil {
+                                Button("Remove Due Date", role: .destructive) {
+                                    newTaskDueDate = nil
+                                }
+                                .font(.caption)
+                            }
                         }
                     }
 
@@ -298,9 +327,17 @@ struct ProjectDetailView: View {
             toggleTask(task, project: project)
         } label: {
             Label {
-                Text(task.title)
-                    .foregroundStyle(.primary)
-                    .strikethrough(task.isCompleted)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(task.title)
+                        .foregroundStyle(.primary)
+                        .strikethrough(task.isCompleted)
+
+                    if let dueDate = task.dueDate {
+                        Text(dueDateLabel(dueDate, isCompleted: task.isCompleted))
+                            .font(.caption2)
+                            .foregroundStyle(dueDateColor(dueDate, isCompleted: task.isCompleted))
+                    }
+                }
             } icon: {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(task.isCompleted ? Color.accentColor : .secondary)
@@ -314,6 +351,21 @@ struct ProjectDetailView: View {
                 Label("Delete", systemImage: "trash")
             }
         }
+    }
+
+    private func dueDateLabel(_ date: Date, isCompleted: Bool) -> String {
+        let formatted = date.formatted(date: .abbreviated, time: .omitted)
+        if !isCompleted && date < Date() {
+            return "Overdue — was due \(formatted)"
+        }
+        return "Due \(formatted)"
+    }
+
+    private func dueDateColor(_ date: Date, isCompleted: Bool) -> Color {
+        guard !isCompleted else { return .secondary }
+        if date < Date() { return .red }
+        let soonThreshold = Calendar.current.date(byAdding: .day, value: 2, to: Date()) ?? date
+        return date < soonThreshold ? .orange : .secondary
     }
 
     private func documentRow(_ document: ProjectDocument, project: Project) -> some View {
@@ -412,11 +464,14 @@ struct ProjectDetailView: View {
     private func addTask(to project: Project) {
         isAddingTask = true
         let title = newTaskTitle
+        let dueDate = newTaskDueDate
         Task {
             defer { isAddingTask = false }
             do {
-                try await projectStore.addTask(title: title, to: project)
+                try await projectStore.addTask(title: title, dueDate: dueDate, to: project)
                 newTaskTitle = ""
+                newTaskDueDate = nil
+                isShowingDueDatePicker = false
             } catch {
                 errorMessage = error.localizedDescription
             }

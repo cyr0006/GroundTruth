@@ -104,20 +104,32 @@ struct ProjectChatView: View {
     }
 
     private func messageBubble(_ message: ChatMessage) -> some View {
-        HStack {
-            if message.role == .user { Spacer(minLength: 40) }
+        VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 2) {
+            Text(message.role == .user ? "You" : "AI Assistant")
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
 
-            Text(formatted(message.text))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    message.role == .user ? Color.accentColor : Color(.systemGray5),
-                    in: RoundedRectangle(cornerRadius: 16)
-                )
-                .foregroundStyle(message.role == .user ? Color.white : Color.primary)
+            HStack {
+                if message.role == .user { Spacer(minLength: 40) }
 
-            if message.role == .assistant { Spacer(minLength: 40) }
+                Text(formatted(message.text))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        message.role == .user ? Color.accentColor : Color(.systemGray5),
+                        in: RoundedRectangle(cornerRadius: 16)
+                    )
+                    .foregroundStyle(message.role == .user ? Color.white : Color.primary)
+
+                if message.role == .assistant { Spacer(minLength: 40) }
+            }
+
+            Text(message.sentAt.formatted(date: .omitted, time: .shortened))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
     }
 
     private func formatted(_ text: String) -> AttributedString {
