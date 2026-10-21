@@ -11,7 +11,12 @@ import FirebaseAuth
 struct HomeView: View {
     @EnvironmentObject private var projectStore: ProjectStore
     @EnvironmentObject private var authService: AuthService
-    
+
+    @State private var isShowingNewProject = false
+    @State private var selectedProjectForChat: Project?
+    @State private var selectedProjectForDetail: Project?
+    @State private var showNoProjectsAlert = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -28,6 +33,20 @@ struct HomeView: View {
             }
             .navigationTitle("GroundTruth")
             .background(Color(.systemGroupedBackground))
+            .navigationDestination(item: $selectedProjectForDetail) { project in
+                ProjectDetailView(projectId: project.id ?? "")
+            }
+            .navigationDestination(item: $selectedProjectForChat) { project in
+                ProjectChatView(project: project)
+            }
+            .sheet(isPresented: $isShowingNewProject) {
+                NewProjectView()
+            }
+            .alert("No Projects Yet", isPresented: $showNoProjectsAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Create a project first, then you can ask the AI about it.")
+            }
         }
     }
 
@@ -50,7 +69,7 @@ struct HomeView: View {
 
             HStack(spacing: 12) {
                 Button {
-                    // Some Placeholder action
+                    isShowingNewProject = true
                 } label: {
                     QuickActionButtonLabel(title: "New Project", systemImage: "plus.circle.fill", tint: .blue)
                 }
@@ -62,7 +81,11 @@ struct HomeView: View {
                 }
 
                 Button {
-                    // Some Placeholder action
+                    if let project = projectStore.projects.first {
+                        selectedProjectForChat = project
+                    } else {
+                        showNoProjectsAlert = true
+                    }
                 } label: {
                     QuickActionButtonLabel(title: "Ask AI", systemImage: "sparkles", tint: .purple)
                 }
@@ -90,7 +113,12 @@ struct HomeView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(projectStore.projects) { project in
-                            ProjectSummaryCard(project: project)
+                            Button {
+                                selectedProjectForDetail = project
+                            } label: {
+                                ProjectSummaryCard(project: project)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }

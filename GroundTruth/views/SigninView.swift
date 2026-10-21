@@ -67,7 +67,7 @@ struct AuthenticationView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
-                    .disabled(isWorking)
+                    .disabled(isWorking || email.isEmpty || password.isEmpty || (mode == .createAccount && displayName.isEmpty))
                 }
                 .padding(28)
                 .frame(maxWidth: 520)

@@ -75,6 +75,10 @@ final class ProjectStore: ObservableObject{
         errorMessage = nil
     }
 
+    func setError(_ message: String){
+        errorMessage = message
+    }
+
     func createProject(name: String, projectDescription: String, address: String, status: ProjectStatus = .planning, noteTexts: [String] = [], pendingDocuments: [PendingProjectDocument] = [], taskTitles: [String] = []) async throws {
         guard let ownerId = currentUserId else {
             throw AppError.notSignedIn
@@ -250,6 +254,18 @@ final class ProjectStore: ObservableObject{
 
         let updatedNotes = project.notes.filter { $0.id != note.id }
         try await updateNotesField(updatedNotes, projectId: projectId)
+    }
+
+    func deleteProject(_ project: Project) async throws {
+        guard let projectId = project.id, !projectId.isEmpty else {
+            throw AppError.projectNotFound
+        }
+
+        for document in project.documents {
+            try? await storage.reference(withPath: document.storagePath).delete()
+        }
+
+        try await database.collection(Project.collectionName).document(projectId).delete()
     }
 
     private func updateDocumentsField(_ documents: [ProjectDocument], projectId: String) async throws {
