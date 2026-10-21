@@ -49,6 +49,7 @@ struct ProjectTask: Identifiable, Hashable, Codable {
     var title: String
     var isCompleted: Bool
     var dueDate: Date? = nil
+    var description: String = ""
 }
 
 /// A file picked on-device but not yet uploaded — the input to `ProjectStore`'s

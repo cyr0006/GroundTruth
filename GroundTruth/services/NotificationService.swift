@@ -44,6 +44,20 @@ enum NotificationService {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }
 
+    /// Fires a real local notification a few seconds from now, independent of any
+    /// task's due date. For demoing that the notification pipeline works end-to-end
+    /// without waiting for an actual due date reminder (which fires a day ahead).
+    static func sendTestNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = "Test Reminder"
+        content.body = "This is what a GroundTruth due-date reminder looks like."
+        content.sound = .default
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+        let request = UNNotificationRequest(identifier: "test-notification", content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request)
+    }
+
     static func scheduleDueDateReminder(taskId: String, taskTitle: String, projectName: String, dueDate: Date) {
         let center = UNUserNotificationCenter.current()
         let identifier = identifier(for: taskId)

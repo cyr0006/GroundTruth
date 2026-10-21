@@ -170,17 +170,18 @@ final class ProjectStore: ObservableObject{
         ])
     }
 
-    func addTask(title: String, dueDate: Date? = nil, to project: Project) async throws {
+    func addTask(title: String, description: String = "", dueDate: Date? = nil, to project: Project) async throws {
         guard let projectId = project.id, !projectId.isEmpty else {
             throw AppError.projectNotFound
         }
 
         let cleaned = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty else {
-            throw AppError.invalidForm("Enter a step description.")
+            throw AppError.invalidForm("Enter a step title.")
         }
+        let cleanedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let newTask = ProjectTask(id: UUID().uuidString, title: cleaned, isCompleted: false, dueDate: dueDate)
+        let newTask = ProjectTask(id: UUID().uuidString, title: cleaned, isCompleted: false, dueDate: dueDate, description: cleanedDescription)
         var updatedTasks = project.tasks
         updatedTasks.append(newTask)
         try await updateTasksField(updatedTasks, projectId: projectId)

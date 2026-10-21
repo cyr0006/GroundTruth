@@ -13,6 +13,7 @@ struct ProfileView: View {
     @EnvironmentObject private var authService: AuthService
     @AppStorage(NotificationService.enabledKey) private var notificationsEnabled = true
     @State private var signoutConfirmationShowing = false
+    @State private var showNotificationDeniedAlert = false
     
     private var displayName: String {
         authService.user?.displayName ?? "User"
@@ -59,6 +60,19 @@ struct ProfileView: View {
                             NotificationService.cancelAllReminders()
                         }
                     }
+
+                    Button("Send Test Notification") {
+                        Task {
+                            let authorized = await NotificationService.requestAuthorizationIfNeeded()
+                            if authorized {
+                                NotificationService.sendTestNotification()
+                            } else {
+                                showNotificationDeniedAlert = true
+                            }
+                        }
+                    }
+                    .disabled(!notificationsEnabled)
+
                     NavigationLink {
                         Text("Appearance settings coming soon.")
                             .foregroundStyle(.secondary)
@@ -96,6 +110,11 @@ struct ProfileView: View {
                 }
             }
             .navigationTitle("Profile")
+            .alert("Notifications Disabled", isPresented: $showNotificationDeniedAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Enable notifications for GroundTruth in iOS Settings to send a test reminder.")
+            }
         }
     }
     

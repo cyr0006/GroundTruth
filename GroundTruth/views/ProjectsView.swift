@@ -141,6 +141,7 @@ struct ProjectDetailView: View {
     @State private var newNoteText = ""
     @State private var isAddingNote = false
     @State private var newTaskTitle = ""
+    @State private var newTaskDescription = ""
     @State private var newTaskDueDate: Date?
     @State private var isShowingDueDatePicker = false
     @State private var isAddingTask = false
@@ -300,27 +301,33 @@ struct ProjectDetailView: View {
     }
 
     private func addStepRow(to project: Project) -> some View {
-        HStack {
-            TextField("Add a step", text: $newTaskTitle)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                TextField("Add a step", text: $newTaskTitle)
 
-            Button {
-                isShowingDueDatePicker.toggle()
-            } label: {
-                Image(systemName: newTaskDueDate == nil ? "calendar.badge.plus" : "calendar.badge.clock")
-                    .foregroundStyle(newTaskDueDate == nil ? .secondary : .accentColor)
-            }
-            .buttonStyle(.plain)
-
-            Button {
-                addTask(to: project)
-            } label: {
-                if isAddingTask {
-                    ProgressView()
-                } else {
-                    Image(systemName: "plus.circle.fill")
+                Button {
+                    isShowingDueDatePicker.toggle()
+                } label: {
+                    Image(systemName: newTaskDueDate == nil ? "calendar.badge.plus" : "calendar.badge.clock")
+                        .foregroundStyle(newTaskDueDate == nil ? .secondary : .accentColor)
                 }
+                .buttonStyle(.plain)
+
+                Button {
+                    addTask(to: project)
+                } label: {
+                    if isAddingTask {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "plus.circle.fill")
+                    }
+                }
+                .disabled(isAddingTask || newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
-            .disabled(isAddingTask || newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+            TextField("Description (optional)", text: $newTaskDescription)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -368,6 +375,12 @@ struct ProjectDetailView: View {
                     Text(task.title)
                         .foregroundStyle(.primary)
                         .strikethrough(task.isCompleted)
+
+                    if !task.description.isEmpty {
+                        Text(task.description)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
 
                     if let dueDate = task.dueDate {
                         Text(dueDateLabel(dueDate, isCompleted: task.isCompleted))
@@ -501,12 +514,14 @@ struct ProjectDetailView: View {
     private func addTask(to project: Project) {
         isAddingTask = true
         let title = newTaskTitle
+        let description = newTaskDescription
         let dueDate = newTaskDueDate
         Task {
             defer { isAddingTask = false }
             do {
-                try await projectStore.addTask(title: title, dueDate: dueDate, to: project)
+                try await projectStore.addTask(title: title, description: description, dueDate: dueDate, to: project)
                 newTaskTitle = ""
+                newTaskDescription = ""
                 newTaskDueDate = nil
                 isShowingDueDatePicker = false
             } catch {

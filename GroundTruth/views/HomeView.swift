@@ -25,6 +25,8 @@ struct HomeView: View {
 
                     quickActions
 
+                    upcomingDeadlinesSection
+
                     activeProjectsSection
 
                     tipOfTheDay
@@ -93,6 +95,67 @@ struct HomeView: View {
         }
     }
 
+    private var upcomingDeadlines: [DeadlineEntry] {
+        projectStore.projects
+            .flatMap { project in
+                project.tasks.compactMap { task -> DeadlineEntry? in
+                    guard task.dueDate != nil, !task.isCompleted else { return nil }
+                    return DeadlineEntry(project: project, task: task)
+                }
+            }
+            .sorted { ($0.task.dueDate ?? .distantFuture) < ($1.task.dueDate ?? .distantFuture) }
+    }
+
+    @ViewBuilder
+    private var upcomingDeadlinesSection: some View {
+        let deadlines = Array(upcomingDeadlines.prefix(5))
+
+        if !deadlines.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Upcoming Deadlines")
+                    .font(.headline)
+
+                VStack(spacing: 0) {
+                    ForEach(deadlines) { entry in
+                        Button {
+                            selectedProjectForDetail = entry.project
+                        } label: {
+                            deadlineRow(entry)
+                        }
+                        .buttonStyle(.plain)
+
+                        if entry.id != deadlines.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+                .padding()
+                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+            }
+        }
+    }
+
+    private func deadlineRow(_ entry: DeadlineEntry) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.task.title)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+                Text(entry.project.name)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if let dueDate = entry.task.dueDate {
+                Text(dueDate.formatted(date: .abbreviated, time: .omitted))
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(dueDate < Date() ? .red : .orange)
+            }
+        }
+        .padding(.vertical, 6)
+    }
+
     private var activeProjectsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -151,6 +214,12 @@ struct HomeView: View {
 }
 
 // Subviews
+
+private struct DeadlineEntry: Identifiable {
+    let project: Project
+    let task: ProjectTask
+    var id: String { task.id }
+}
 
 private struct QuickActionButtonLabel: View {
     let title: String
