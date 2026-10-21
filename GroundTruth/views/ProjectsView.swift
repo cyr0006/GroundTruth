@@ -167,77 +167,7 @@ struct ProjectDetailView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Section {
-                        ProgressView(value: project.progress) {
-                            Text("\(project.tasksCompleted) of \(project.totalTasks) tasks complete")
-                                .font(.caption)
-                        }
-
-                        if project.tasks.isEmpty {
-                            Text("No steps yet")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ForEach(project.tasks) { task in
-                                taskRow(task, project: project)
-                            }
-                            .onMove { source, destination in
-                                moveTasks(in: project, fromOffsets: source, toOffset: destination)
-                            }
-                        }
-
-                        HStack {
-                            TextField("Add a step", text: $newTaskTitle)
-
-                            Button {
-                                isShowingDueDatePicker.toggle()
-                            } label: {
-                                Image(systemName: newTaskDueDate == nil ? "calendar.badge.plus" : "calendar.badge.clock")
-                                    .foregroundStyle(newTaskDueDate == nil ? .secondary : .accentColor)
-                            }
-                            .buttonStyle(.plain)
-
-                            Button {
-                                addTask(to: project)
-                            } label: {
-                                if isAddingTask {
-                                    ProgressView()
-                                } else {
-                                    Image(systemName: "plus.circle.fill")
-                                }
-                            }
-                            .disabled(isAddingTask || newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        }
-
-                        if isShowingDueDatePicker {
-                            DatePicker(
-                                "Due date",
-                                selection: Binding(
-                                    get: { newTaskDueDate ?? Date() },
-                                    set: { newTaskDueDate = $0 }
-                                ),
-                                displayedComponents: .date
-                            )
-
-                            if newTaskDueDate != nil {
-                                Button("Remove Due Date", role: .destructive) {
-                                    newTaskDueDate = nil
-                                }
-                                .font(.caption)
-                            }
-                        }
-                    } header: {
-                        HStack {
-                            Text("Roadmap & Checklist")
-                            Spacer()
-                            if isEditingTaskOrder || project.tasks.count > 1 {
-                                Button(isEditingTaskOrder ? "Done" : "Reorder") {
-                                    isEditingTaskOrder.toggle()
-                                }
-                                .font(.caption)
-                            }
-                        }
-                        .textCase(nil)
-                    }
+                    roadmapSection(for: project)
 
                     Section("AI Chat") {
                         NavigationLink {
@@ -337,6 +267,96 @@ struct ProjectDetailView: View {
 
     private var errorIsPresented: Binding<Bool> {
         Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
+    }
+
+    @ViewBuilder
+    private func roadmapSection(for project: Project) -> some View {
+        Section {
+            ProgressView(value: project.progress) {
+                Text("\(project.tasksCompleted) of \(project.totalTasks) tasks complete")
+                    .font(.caption)
+            }
+
+            if project.tasks.isEmpty {
+                Text("No steps yet")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(project.tasks) { task in
+                    taskRow(task, project: project)
+                }
+                .onMove { source, destination in
+                    moveTasks(in: project, fromOffsets: source, toOffset: destination)
+                }
+            }
+
+            addStepRow(to: project)
+
+            if isShowingDueDatePicker {
+                dueDatePicker
+            }
+        } header: {
+            roadmapSectionHeader(for: project)
+        }
+    }
+
+    private func addStepRow(to project: Project) -> some View {
+        HStack {
+            TextField("Add a step", text: $newTaskTitle)
+
+            Button {
+                isShowingDueDatePicker.toggle()
+            } label: {
+                Image(systemName: newTaskDueDate == nil ? "calendar.badge.plus" : "calendar.badge.clock")
+                    .foregroundStyle(newTaskDueDate == nil ? .secondary : .accentColor)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                addTask(to: project)
+            } label: {
+                if isAddingTask {
+                    ProgressView()
+                } else {
+                    Image(systemName: "plus.circle.fill")
+                }
+            }
+            .disabled(isAddingTask || newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+    }
+
+    @ViewBuilder
+    private var dueDatePicker: some View {
+        DatePicker(
+            "Due date",
+            selection: Binding(
+                get: { newTaskDueDate ?? Date() },
+                set: { newTaskDueDate = $0 }
+            ),
+            displayedComponents: .date
+        )
+
+        if newTaskDueDate != nil {
+            Button("Remove Due Date", role: .destructive) {
+                newTaskDueDate = nil
+            }
+            .font(.caption)
+        }
+    }
+
+    private func roadmapSectionHeader(for project: Project) -> some View {
+        HStack {
+            Text("Roadmap & Checklist")
+            Spacer()
+            if isEditingTaskOrder || project.tasks.count > 1 {
+                Button {
+                    isEditingTaskOrder.toggle()
+                } label: {
+                    Text(isEditingTaskOrder ? "Done" : "Reorder")
+                }
+                .font(.caption)
+            }
+        }
+        .textCase(nil)
     }
 
     private func taskRow(_ task: ProjectTask, project: Project) -> some View {
