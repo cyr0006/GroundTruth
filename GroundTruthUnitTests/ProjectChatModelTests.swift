@@ -1,16 +1,23 @@
 //
-//  ProjectChatModelTests.swift
-//  GroundTruthUnitTests
+//  GroundTruthTests.swift
+//  GroundTruthTests
 //
 //  Created by Aryan Cyrus  on 21/10/2026.
 //
 
 import Testing
+@testable import GroundTruth
 
-struct ProjectChatModelTests {
-
-    @Test func <#test function name#>() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+@MainActor
+final class  ProjectChatViewModelTests {
+    @Test func testSend_blankInput_doesNothing(){
+        let project = Project.sampleProjects[0]
+        let viewModel = ProjectChatViewModel(project: project)
+        
+        viewModel.send("    ")
+        
+        #expect(viewModel.messages.isEmpty)
+        #expect(viewModel.isSending == false)
     }
-
 }
+

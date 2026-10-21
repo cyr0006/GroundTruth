@@ -12,16 +12,16 @@ import Testing
 struct PlanningStyleZoneTests {
 
     @Test func knownResidentialCode_mapsToResidential()  {
-        #expect(PlanningStyle.ZoneCategory(forZoneCode: "GRZ1") == .residential)
+        #expect(PlanningStyle.zoneCategory(forZoneCode: "GRZ1") == .residential)
     }
 
     @Test func knownCommercialCode_mapsToCommercial()  {
-        #expect(PlanningStyle.ZoneCategory(forZoneCode: "C1Z") == .commercial)
+        #expect(PlanningStyle.zoneCategory(forZoneCode: "C1Z") == .commercial)
     }
 
     @Test func nilOrUnknownCode_fallsBackToOther()  {
-        #expect(PlanningStyle.ZoneCategory(forZoneCode: nil) == .other)
-        #expect(PlanningStyle.ZoneCategory(forZoneCode: "LMAO09") == .other)
+        #expect(PlanningStyle.zoneCategory(forZoneCode: nil) == .other)
+        #expect(PlanningStyle.zoneCategory(forZoneCode: "LMAO09") == .other)
     }
 
 }
