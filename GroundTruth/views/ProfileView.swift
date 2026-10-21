@@ -72,6 +72,7 @@ struct ProfileView: View {
 
                 Section {
                     Button(role: .destructive) {
+                        signoutConfirmationShowing = true
                     } label: {
                         Text("Sign Out")
                     }

@@ -9,10 +9,11 @@ import SwiftUI
 import FirebaseAuth
 
 struct PersonalDetailsView: View {
-        @EnvironmentObject private var authService: AuthService
+    @EnvironmentObject private var authService: AuthService
     @State private var name = ""
     @State private var isEditing = false
-
+    @State private var isSaving = false
+    @State private var errorMessage: String?
 
     var body: some View {
         Form {
@@ -29,30 +30,42 @@ struct PersonalDetailsView: View {
             name = authService.user?.displayName ?? ""
         }
         .toolbar {
-            Button(isEditing ? "Save" : "Edit") {
-
-                if isEditing {
-                    updateName(name: name)
+            if isSaving {
+                ProgressView()
+            } else {
+                Button(isEditing ? "Save" : "Edit") {
+                    if isEditing {
+                        Task { await save() }
+                    } else {
+                        isEditing = true
+                    }
                 }
-
-                isEditing.toggle()
             }
         }
+        .alert("Couldn't Update Name", isPresented: errorIsPresented) {
+            Button("OK", role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "Please try again.")
+        }
     }
-    
-    
-    private func updateName(name: String) {
+
+    private var errorIsPresented: Binding<Bool> {
+        Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
+    }
+
+    private func save() async {
         guard let user = Auth.auth().currentUser else { return }
-        
+        isSaving = true
+        defer { isSaving = false }
+
         let changeRequest = user.createProfileChangeRequest()
         changeRequest.displayName = name
-        
-        changeRequest.commitChanges { error in
-        if let error = error {
-        print("Failed to update name: \(error.localizedDescription)")
-        } else {
-        print("Name updated successfully")
-        }
+        do {
+            try await changeRequest.commitChanges()
+            await authService.refreshUser()
+            isEditing = false
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 }

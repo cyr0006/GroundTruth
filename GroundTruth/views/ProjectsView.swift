@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
 struct ProjectsView: View {
     @EnvironmentObject private var projectStore: ProjectStore
     @State private var isShowingNewProject = false
+    @State private var projectPendingDelete: Project?
 
     // No NavigationStack here: this view is reused both as a tab root (MainTabView,
     // which supplies its own NavigationStack) and as a pushed destination (HomeView's
@@ -32,6 +33,13 @@ struct ProjectsView: View {
                     ForEach(projectStore.projects) { project in
                         NavigationLink(value: project) {
                             ProjectRow(project: project)
+                        }
+                        .swipeActions {
+                            Button(role: .destructive) {
+                                projectPendingDelete = project
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
                     }
                 }
@@ -59,6 +67,19 @@ struct ProjectsView: View {
         } message: {
             Text(projectStore.errorMessage ?? "Please try again.")
         }
+        .confirmationDialog(
+            "Delete this project?",
+            isPresented: projectPendingDeleteIsPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Project", role: .destructive) {
+                if let project = projectPendingDelete {
+                    deleteProject(project)
+                }
+            }
+        } message: {
+            Text("This permanently deletes the project, its tasks, notes, and documents.")
+        }
     }
 
     private var projectErrorIsPresented: Binding<Bool> {
@@ -66,6 +87,24 @@ struct ProjectsView: View {
             get: { projectStore.errorMessage != nil },
             set: { if !$0 { projectStore.clearError() } }
         )
+    }
+
+    private var projectPendingDeleteIsPresented: Binding<Bool> {
+        Binding(
+            get: { projectPendingDelete != nil },
+            set: { if !$0 { projectPendingDelete = nil } }
+        )
+    }
+
+    private func deleteProject(_ project: Project) {
+        Task {
+            do {
+                try await projectStore.deleteProject(project)
+            } catch {
+                projectStore.setError(error.localizedDescription)
+            }
+            projectPendingDelete = nil
+        }
     }
 }
 
@@ -93,7 +132,7 @@ private struct ProjectRow: View {
     }
 }
 
-private struct ProjectDetailView: View {
+struct ProjectDetailView: View {
     let projectId: String
 
     @EnvironmentObject private var projectStore: ProjectStore
@@ -406,7 +445,7 @@ private struct ProjectDetailView: View {
 }
 
 
-private struct NewProjectView: View {
+struct NewProjectView: View {
     @EnvironmentObject private var projectStore: ProjectStore
     @Environment(\.dismiss) private var dismiss
 

@@ -107,17 +107,24 @@ struct ProjectChatView: View {
         HStack {
             if message.role == .user { Spacer(minLength: 40) }
 
-            Text(message.text)
+            Text(formatted(message.text))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(
-                    message.role == .user ? Color.accentColor : Color(.secondarySystemGroupedBackground),
+                    message.role == .user ? Color.accentColor : Color(.systemGray5),
                     in: RoundedRectangle(cornerRadius: 16)
                 )
                 .foregroundStyle(message.role == .user ? Color.white : Color.primary)
 
             if message.role == .assistant { Spacer(minLength: 40) }
         }
+    }
+
+    private func formatted(_ text: String) -> AttributedString {
+        (try? AttributedString(
+            markdown: text,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(text)
     }
 }
 

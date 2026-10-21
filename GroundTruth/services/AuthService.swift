@@ -79,6 +79,11 @@ final class AuthService: ObservableObject{
     func signOut() throws {
         try auth.signOut()
     }
-    
+
+    func refreshUser() async {
+        try? await auth.currentUser?.reload()
+        user = auth.currentUser
+    }
+
 }
 
