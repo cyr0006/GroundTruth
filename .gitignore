@@ -1,7 +1,0 @@
-# Raw VBA/BPC permit data — marked "OFFICIAL – Sensitive (Personal Privacy)" by the
-# Building and Plumbing Commission's own disclaimer sheet; storage/retention/sharing
-# beyond this machine isn't authorised, so it must never be committed. Only the
-# cleaned, aggregated training CSV (no addresses/names) should be tracked.
-*Rawdata*.xlsb
-*Rawdata*.csv
-/ml_data/raw/
