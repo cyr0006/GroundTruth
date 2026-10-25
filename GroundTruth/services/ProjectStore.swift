@@ -298,6 +298,16 @@ final class ProjectStore: ObservableObject{
         try await database.collection(Project.collectionName).document(projectId)
             .updateData(["chatMessages": encoded])
     }
+    
+    func setCostEstimatorInputs(_ inputs: CostEstimateInputs, for project: Project) async throws {
+        guard let projectId = project.id, !projectId.isEmpty else {
+            throw AppError.projectNotFound
+        }
+        
+        let encoded = try Firestore.Encoder().encode(inputs)
+        try await database.collection(Project.collectionName).document(projectId)
+            .updateData(["CostEstimateInputs": encoded])
+    }
 
     func deleteProject(_ project: Project) async throws {
         guard let projectId = project.id, !projectId.isEmpty else {

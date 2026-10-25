@@ -52,6 +52,11 @@ struct ProjectTask: Identifiable, Hashable, Codable {
     var description: String = ""
 }
 
+struct CostEstimateInputs: Hashable, Codable{
+    var floorAreaSqm: Double
+    var projectType: String
+}
+
 /// A file picked on-device but not yet uploaded — the input to `ProjectStore`'s
 /// upload methods. Not itself stored anywhere.
 struct PendingProjectDocument: Identifiable {
@@ -73,6 +78,7 @@ struct Project: Identifiable,Hashable, Codable {
     var notes: [ProjectNote]
     var tasks: [ProjectTask]
     var chatMessages: [ChatMessage]
+    var costEstimateInputs: CostEstimateInputs? = nil
 
     var id: String?{
         projID ?? ""
@@ -87,7 +93,7 @@ struct Project: Identifiable,Hashable, Codable {
         return Double(tasksCompleted) / Double(totalTasks)
     }
 
-    init(projID: String? = nil, ownerId: String, name: String, projectDescription: String, address: String, status: ProjectStatus, documents: [ProjectDocument] = [], notes: [ProjectNote] = [], tasks: [ProjectTask] = [], chatMessages: [ChatMessage] = []) {
+    init(projID: String? = nil, ownerId: String, name: String, projectDescription: String, address: String, status: ProjectStatus, documents: [ProjectDocument] = [], notes: [ProjectNote] = [], tasks: [ProjectTask] = [], chatMessages: [ChatMessage] = [], costEstimateInputs: CostEstimateInputs? = nil) {
         self.projID = projID
         self.ownerId = ownerId
         self.name = name
@@ -98,6 +104,7 @@ struct Project: Identifiable,Hashable, Codable {
         self.notes = notes
         self.tasks = tasks
         self.chatMessages = chatMessages
+        self.costEstimateInputs = costEstimateInputs
     }
 }
 
