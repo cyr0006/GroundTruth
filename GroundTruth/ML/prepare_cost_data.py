@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 df = pd.read_excel("20262081-Rawdata-September-2026.xlsb", engine="pyxlsb", sheet_name="Sheet1")
 
@@ -18,6 +19,9 @@ out = pd.DataFrame({
     "costOfWorks": f["Total_Estimated_Cost_of_Works__c"],
 })
 out = out.dropna().drop_duplicates()
+
+
+out["logCost"] = np.log(out["costOfWorks"])
 out.to_csv("training_data.csv", index=False)
 
 print(out.shape)
