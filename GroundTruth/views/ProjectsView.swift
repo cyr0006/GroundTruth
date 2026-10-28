@@ -136,7 +136,6 @@ struct ProjectDetailView: View {
     let projectId: String
 
     @EnvironmentObject private var projectStore: ProjectStore
-    @State private var isShowingCostEstimateSheet = false
     @State private var isShowingDocumentPicker = false
     @State private var isUploadingDocument = false
     @State private var newNoteText = ""
