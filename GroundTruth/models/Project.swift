@@ -27,7 +27,7 @@ enum ProjectStatus: String, CaseIterable, Codable, Identifiable {
 }
 
 /// Metadata for a file uploaded to Firebase Storage for a project. The file bytes
-/// themselves live in Storage at `storagePath` — this struct is just what's stored
+/// themselves live in Storage at `storagePath`this struct is just what's stored
 /// on the Firestore project document.
 struct ProjectDocument: Identifiable, Hashable, Codable {
     var id: String
@@ -48,6 +48,13 @@ struct ProjectTask: Identifiable, Hashable, Codable {
     var id: String
     var title: String
     var isCompleted: Bool
+    var dueDate: Date? = nil
+    var description: String = ""
+}
+
+struct CostEstimateInputs: Hashable, Codable{
+    var floorAreaSqm: Double
+    var projectType: String
 }
 
 /// A file picked on-device but not yet uploaded — the input to `ProjectStore`'s
@@ -70,6 +77,8 @@ struct Project: Identifiable,Hashable, Codable {
     var documents: [ProjectDocument]
     var notes: [ProjectNote]
     var tasks: [ProjectTask]
+    var chatMessages: [ChatMessage]
+    var costEstimateInputs: CostEstimateInputs? = nil
 
     var id: String?{
         projID ?? ""
@@ -84,7 +93,7 @@ struct Project: Identifiable,Hashable, Codable {
         return Double(tasksCompleted) / Double(totalTasks)
     }
 
-    init(projID: String? = nil, ownerId: String, name: String, projectDescription: String, address: String, status: ProjectStatus, documents: [ProjectDocument] = [], notes: [ProjectNote] = [], tasks: [ProjectTask] = []) {
+    init(projID: String? = nil, ownerId: String, name: String, projectDescription: String, address: String, status: ProjectStatus, documents: [ProjectDocument] = [], notes: [ProjectNote] = [], tasks: [ProjectTask] = [], chatMessages: [ChatMessage] = [], costEstimateInputs: CostEstimateInputs? = nil) {
         self.projID = projID
         self.ownerId = ownerId
         self.name = name
@@ -94,6 +103,8 @@ struct Project: Identifiable,Hashable, Codable {
         self.documents = documents
         self.notes = notes
         self.tasks = tasks
+        self.chatMessages = chatMessages
+        self.costEstimateInputs = costEstimateInputs
     }
 }
 

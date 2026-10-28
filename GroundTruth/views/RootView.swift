@@ -16,6 +16,7 @@ struct RootView: View {
         } else {
             AuthenticatedRootView()
         }
+        
     }
 }
 
@@ -43,6 +44,7 @@ private struct AuthenticatedRootView: View {
             }
         }
     }
+    
 }
 
 private struct FirebaseSetupView: View {

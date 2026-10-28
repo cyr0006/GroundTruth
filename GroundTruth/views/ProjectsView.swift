@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
 struct ProjectsView: View {
     @EnvironmentObject private var projectStore: ProjectStore
     @State private var isShowingNewProject = false
+    @State private var projectPendingDelete: Project?
 
     // No NavigationStack here: this view is reused both as a tab root (MainTabView,
     // which supplies its own NavigationStack) and as a pushed destination (HomeView's
@@ -32,6 +33,13 @@ struct ProjectsView: View {
                     ForEach(projectStore.projects) { project in
                         NavigationLink(value: project) {
                             ProjectRow(project: project)
+                        }
+                        .swipeActions {
+                            Button(role: .destructive) {
+                                projectPendingDelete = project
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
                     }
                 }
@@ -59,6 +67,19 @@ struct ProjectsView: View {
         } message: {
             Text(projectStore.errorMessage ?? "Please try again.")
         }
+        .confirmationDialog(
+            "Delete this project?",
+            isPresented: projectPendingDeleteIsPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Project", role: .destructive) {
+                if let project = projectPendingDelete {
+                    deleteProject(project)
+                }
+            }
+        } message: {
+            Text("This permanently deletes the project, its tasks, notes, and documents.")
+        }
     }
 
     private var projectErrorIsPresented: Binding<Bool> {
@@ -66,6 +87,24 @@ struct ProjectsView: View {
             get: { projectStore.errorMessage != nil },
             set: { if !$0 { projectStore.clearError() } }
         )
+    }
+
+    private var projectPendingDeleteIsPresented: Binding<Bool> {
+        Binding(
+            get: { projectPendingDelete != nil },
+            set: { if !$0 { projectPendingDelete = nil } }
+        )
+    }
+
+    private func deleteProject(_ project: Project) {
+        Task {
+            do {
+                try await projectStore.deleteProject(project)
+            } catch {
+                projectStore.setError(error.localizedDescription)
+            }
+            projectPendingDelete = nil
+        }
     }
 }
 
@@ -93,7 +132,7 @@ private struct ProjectRow: View {
     }
 }
 
-private struct ProjectDetailView: View {
+struct ProjectDetailView: View {
     let projectId: String
 
     @EnvironmentObject private var projectStore: ProjectStore
@@ -102,9 +141,16 @@ private struct ProjectDetailView: View {
     @State private var newNoteText = ""
     @State private var isAddingNote = false
     @State private var newTaskTitle = ""
+    @State private var newTaskDescription = ""
+    @State private var newTaskDueDate: Date?
+    @State private var isShowingDueDatePicker = false
     @State private var isAddingTask = false
     @State private var isShowingEditProject = false
+    @State private var isShowingCostEstimateSheet = false
+    @State private var isEditingTaskOrder = false
     @State private var errorMessage: String?
+    
+    private let costEstimator = CostEstimatorService()
 
     // Looked up live from the store (rather than held as a static snapshot) so
     // uploads/notes added below show up immediately as Firestore pushes the update.
@@ -125,41 +171,13 @@ private struct ProjectDetailView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Section("Roadmap & Checklist") {
-                        ProgressView(value: project.progress) {
-                            Text("\(project.tasksCompleted) of \(project.totalTasks) tasks complete")
-                                .font(.caption)
-                        }
+                    costEstimateSection(for: project)
 
-                        if project.tasks.isEmpty {
-                            Text("No steps yet")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ForEach(project.tasks) { task in
-                                taskRow(task, project: project)
-                            }
-                        }
-
-                        HStack {
-                            TextField("Add a step", text: $newTaskTitle)
-                            Button {
-                                addTask(to: project)
-                            } label: {
-                                if isAddingTask {
-                                    ProgressView()
-                                } else {
-                                    Image(systemName: "plus.circle.fill")
-                                }
-                            }
-                            .disabled(isAddingTask || newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        }
-                    }
+                    roadmapSection(for: project)
 
                     Section("AI Chat") {
                         NavigationLink {
-                            Text("AI project chat coming soon.")
-                                .foregroundStyle(.secondary)
-                                .navigationTitle("AI Assistant")
+                            ProjectChatView(project: project, projectStore: projectStore)
                         } label: {
                             Label("Ask about this project", systemImage: "sparkles")
                         }
@@ -220,6 +238,7 @@ private struct ProjectDetailView: View {
                         }
                     }
                 }
+                .environment(\.editMode, .constant(isEditingTaskOrder ? .active : .inactive))
                 .navigationTitle(project.name)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -233,6 +252,9 @@ private struct ProjectDetailView: View {
                 }
                 .sheet(isPresented: $isShowingEditProject) {
                     EditProjectView(project: project)
+                }
+                .sheet(isPresented: $isShowingCostEstimateSheet) {
+                    CostEstimateInputSheet(project: project)
                 }
             } else {
                 ContentUnavailableView(
@@ -256,14 +278,146 @@ private struct ProjectDetailView: View {
         Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
     }
 
+    @ViewBuilder
+    private func costEstimateSection(for project: Project) -> some View {
+        Section("Cost Estimate") {
+            switch costEstimator.estimate(for: project.costEstimateInputs) {
+            case .available(let low, let high):
+                LabeledContent("Estimate") {
+                    VStack(alignment: .trailing) {
+                        Text("\(low, format: .currency(code: "AUD")) – \(high, format: .currency(code: "AUD"))")
+                        Text("Preliminary")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Button("Edit Project Scope") { isShowingCostEstimateSheet = true }
+            case .unavailable:
+                Text("The project currently does not have enough information to provide an estimate. Add more project details, scope, or supporting documents to generate a cost estimate.")
+                    .foregroundStyle(.secondary)
+                Button("Add Project Scope") { isShowingCostEstimateSheet = true }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func roadmapSection(for project: Project) -> some View {
+        Section {
+            ProgressView(value: project.progress) {
+                Text("\(project.tasksCompleted) of \(project.totalTasks) tasks complete")
+                    .font(.caption)
+            }
+
+            if project.tasks.isEmpty {
+                Text("No steps yet")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(project.tasks) { task in
+                    taskRow(task, project: project)
+                }
+                .onMove { source, destination in
+                    moveTasks(in: project, fromOffsets: source, toOffset: destination)
+                }
+            }
+
+            addStepRow(to: project)
+
+            if isShowingDueDatePicker {
+                dueDatePicker
+            }
+        } header: {
+            roadmapSectionHeader(for: project)
+        }
+    }
+
+    private func addStepRow(to project: Project) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                TextField("Add a step", text: $newTaskTitle)
+
+            Button {
+                isShowingDueDatePicker.toggle()
+            } label: {
+                Image(systemName: newTaskDueDate == nil ? "calendar.badge.plus" : "calendar.badge.clock")
+                    .foregroundStyle(newTaskDueDate == nil ? .secondary : Color.accentColor)
+            }
+            .buttonStyle(.plain)
+
+                Button {
+                    addTask(to: project)
+                } label: {
+                    if isAddingTask {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "plus.circle.fill")
+                    }
+                }
+                .disabled(isAddingTask || newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+
+            TextField("Description (optional)", text: $newTaskDescription)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var dueDatePicker: some View {
+        DatePicker(
+            "Due date",
+            selection: Binding(
+                get: { newTaskDueDate ?? Date() },
+                set: { newTaskDueDate = $0 }
+            ),
+            displayedComponents: .date
+        )
+
+        if newTaskDueDate != nil {
+            Button("Remove Due Date", role: .destructive) {
+                newTaskDueDate = nil
+            }
+            .font(.caption)
+        }
+    }
+
+    private func roadmapSectionHeader(for project: Project) -> some View {
+        HStack {
+            Text("Roadmap & Checklist")
+            Spacer()
+            if isEditingTaskOrder || project.tasks.count > 1 {
+                Button {
+                    isEditingTaskOrder.toggle()
+                } label: {
+                    Text(isEditingTaskOrder ? "Done" : "Reorder")
+                }
+                .font(.caption)
+            }
+        }
+        .textCase(nil)
+    }
+
     private func taskRow(_ task: ProjectTask, project: Project) -> some View {
         Button {
             toggleTask(task, project: project)
         } label: {
             Label {
-                Text(task.title)
-                    .foregroundStyle(.primary)
-                    .strikethrough(task.isCompleted)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(task.title)
+                        .foregroundStyle(.primary)
+                        .strikethrough(task.isCompleted)
+
+                    if !task.description.isEmpty {
+                        Text(task.description)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let dueDate = task.dueDate {
+                        Text(dueDateLabel(dueDate, isCompleted: task.isCompleted))
+                            .font(.caption2)
+                            .foregroundStyle(dueDateColor(dueDate, isCompleted: task.isCompleted))
+                    }
+                }
             } icon: {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(task.isCompleted ? Color.accentColor : .secondary)
@@ -277,6 +431,21 @@ private struct ProjectDetailView: View {
                 Label("Delete", systemImage: "trash")
             }
         }
+    }
+
+    private func dueDateLabel(_ date: Date, isCompleted: Bool) -> String {
+        let formatted = date.formatted(date: .abbreviated, time: .omitted)
+        if !isCompleted && date < Date() {
+            return "Overdue — was due \(formatted)"
+        }
+        return "Due \(formatted)"
+    }
+
+    private func dueDateColor(_ date: Date, isCompleted: Bool) -> Color {
+        guard !isCompleted else { return .secondary }
+        if date < Date() { return .red }
+        let soonThreshold = Calendar.current.date(byAdding: .day, value: 2, to: Date()) ?? date
+        return date < soonThreshold ? .orange : .secondary
     }
 
     private func documentRow(_ document: ProjectDocument, project: Project) -> some View {
@@ -375,11 +544,16 @@ private struct ProjectDetailView: View {
     private func addTask(to project: Project) {
         isAddingTask = true
         let title = newTaskTitle
+        let description = newTaskDescription
+        let dueDate = newTaskDueDate
         Task {
             defer { isAddingTask = false }
             do {
-                try await projectStore.addTask(title: title, to: project)
+                try await projectStore.addTask(title: title, description: description, dueDate: dueDate, to: project)
                 newTaskTitle = ""
+                newTaskDescription = ""
+                newTaskDueDate = nil
+                isShowingDueDatePicker = false
             } catch {
                 errorMessage = error.localizedDescription
             }
@@ -405,10 +579,20 @@ private struct ProjectDetailView: View {
             }
         }
     }
+
+    private func moveTasks(in project: Project, fromOffsets source: IndexSet, toOffset destination: Int) {
+        Task {
+            do {
+                try await projectStore.moveTasks(in: project, fromOffsets: source, toOffset: destination)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
 }
 
 
-private struct NewProjectView: View {
+struct NewProjectView: View {
     @EnvironmentObject private var projectStore: ProjectStore
     @Environment(\.dismiss) private var dismiss
 

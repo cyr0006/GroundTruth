@@ -6,11 +6,18 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct ProfileView: View {
     @EnvironmentObject private var projectStore: ProjectStore
     @EnvironmentObject private var authService: AuthService
-    @State private var notificationsEnabled = true
+    @AppStorage(NotificationService.enabledKey) private var notificationsEnabled = true
+    @State private var signoutConfirmationShowing = false
+    @State private var showNotificationDeniedAlert = false
+    
+    private var displayName: String {
+        authService.user?.displayName ?? "User"
+    }
 
     var body: some View {
         NavigationStack {
@@ -23,26 +30,22 @@ struct ProfileView: View {
                             .foregroundStyle(.secondary)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Aryan Cyrus")
+                            Text("\(displayName)")
                                 .font(.title3)
                                 .fontWeight(.semibold)
-                            Text("aryan.cyrus@example.com")
+                            Text("\(authService.user?.email ?? "Email Not Available")")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                            Text("Sign-in not yet available")
-                                .font(.caption)
-                                .foregroundStyle(.orange)
                         }
                     }
                     .padding(.vertical, 8)
+                    
                 }
 
                 Section("Account") {
                     LabeledContent("Saved Projects", value: "\(projectStore.projects.count)")
                     NavigationLink("Personal Details") {
-                        Text("Personal details editing coming soon.")
-                            .foregroundStyle(.secondary)
-                            .navigationTitle("Personal Details")
+                        PersonalDetailsView()
                     }
                 }
 
@@ -50,6 +53,26 @@ struct ProfileView: View {
                     Toggle(isOn: $notificationsEnabled) {
                         Label("Notifications", systemImage: "bell")
                     }
+                    .onChange(of: notificationsEnabled) { _, isEnabled in
+                        if isEnabled {
+                            Task { _ = await NotificationService.requestAuthorizationIfNeeded() }
+                        } else {
+                            NotificationService.cancelAllReminders()
+                        }
+                    }
+
+                    Button("Send Test Notification") {
+                        Task {
+                            let authorized = await NotificationService.requestAuthorizationIfNeeded()
+                            if authorized {
+                                NotificationService.sendTestNotification()
+                            } else {
+                                showNotificationDeniedAlert = true
+                            }
+                        }
+                    }
+                    .disabled(!notificationsEnabled)
+
                     NavigationLink {
                         Text("Appearance settings coming soon.")
                             .foregroundStyle(.secondary)
@@ -70,13 +93,28 @@ struct ProfileView: View {
 
                 Section {
                     Button(role: .destructive) {
-                        signOut()
+                        signoutConfirmationShowing = true
                     } label: {
                         Text("Sign Out")
+                    }
+                    .alert(isPresented: $signoutConfirmationShowing) {
+                        Alert(
+                            title: Text("Sign Out"),
+                            message: Text("Are you sure you want to sign out?"),
+                            primaryButton: .cancel(),
+                            secondaryButton: .destructive(Text("Sign Out")) {
+                                signOut()
+                            }
+                        )
                     }
                 }
             }
             .navigationTitle("Profile")
+            .alert("Notifications Disabled", isPresented: $showNotificationDeniedAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Enable notifications for GroundTruth in iOS Settings to send a test reminder.")
+            }
         }
     }
     

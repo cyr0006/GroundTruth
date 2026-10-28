@@ -15,11 +15,6 @@ struct MainTabView: View {
                     Label("Home", systemImage: "house.fill")
                 }
 
-            MapView()
-                .tabItem {
-                    Label("Map", systemImage: "map.fill")
-                }
-
             NavigationStack {
                 ProjectsView()
             }

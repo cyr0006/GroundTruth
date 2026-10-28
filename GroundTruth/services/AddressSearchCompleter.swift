@@ -2,7 +2,7 @@
 //  AddressSearchCompleter.swift
 //  GroundTruth
 //
-
+//
 import Foundation
 import MapKit
 import Contacts

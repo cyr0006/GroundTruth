@@ -12,6 +12,11 @@ struct HomeView: View {
     @EnvironmentObject private var projectStore: ProjectStore
     @EnvironmentObject private var authService: AuthService
 
+    @State private var isShowingNewProject = false
+    @State private var selectedProjectForChat: Project?
+    @State private var selectedProjectForDetail: Project?
+    @State private var showNoProjectsAlert = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -19,6 +24,8 @@ struct HomeView: View {
                     welcomeHeader
 
                     quickActions
+
+                    upcomingDeadlinesSection
 
                     activeProjectsSection
 
@@ -28,6 +35,20 @@ struct HomeView: View {
             }
             .navigationTitle("GroundTruth")
             .background(Color(.systemGroupedBackground))
+            .navigationDestination(item: $selectedProjectForDetail) { project in
+                ProjectDetailView(projectId: project.id ?? "")
+            }
+            .navigationDestination(item: $selectedProjectForChat) { project in
+                ProjectChatView(project: project, projectStore: projectStore)
+            }
+            .sheet(isPresented: $isShowingNewProject) {
+                NewProjectView()
+            }
+            .alert("No Projects Yet", isPresented: $showNoProjectsAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Create a project first, then you can ask the AI about it.")
+            }
         }
     }
 
@@ -49,11 +70,90 @@ struct HomeView: View {
                 .font(.headline)
 
             HStack(spacing: 12) {
-                QuickActionButton(title: "New Project", systemImage: "plus.circle.fill", tint: .blue)
-                QuickActionButton(title: "Search Address", systemImage: "mappin.and.ellipse", tint: .green)
-                QuickActionButton(title: "Ask AI", systemImage: "sparkles", tint: .purple)
+                Button {
+                    isShowingNewProject = true
+                } label: {
+                    QuickActionButtonLabel(title: "New Project", systemImage: "plus.circle.fill", tint: .blue)
+                }
+
+                NavigationLink {
+                    MapView()
+                } label: {
+                    QuickActionButtonLabel(title: "Search Address", systemImage: "mappin.and.ellipse", tint: .green)
+                }
+
+                Button {
+                    if let project = projectStore.projects.first {
+                        selectedProjectForChat = project
+                    } else {
+                        showNoProjectsAlert = true
+                    }
+                } label: {
+                    QuickActionButtonLabel(title: "Ask AI", systemImage: "sparkles", tint: .purple)
+                }
             }
         }
+    }
+
+    private var upcomingDeadlines: [DeadlineEntry] {
+        projectStore.projects
+            .flatMap { project in
+                project.tasks.compactMap { task -> DeadlineEntry? in
+                    guard task.dueDate != nil, !task.isCompleted else { return nil }
+                    return DeadlineEntry(project: project, task: task)
+                }
+            }
+            .sorted { ($0.task.dueDate ?? .distantFuture) < ($1.task.dueDate ?? .distantFuture) }
+    }
+
+    @ViewBuilder
+    private var upcomingDeadlinesSection: some View {
+        let deadlines = Array(upcomingDeadlines.prefix(5))
+
+        if !deadlines.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Upcoming Deadlines")
+                    .font(.headline)
+
+                VStack(spacing: 0) {
+                    ForEach(deadlines) { entry in
+                        Button {
+                            selectedProjectForDetail = entry.project
+                        } label: {
+                            deadlineRow(entry)
+                        }
+                        .buttonStyle(.plain)
+
+                        if entry.id != deadlines.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+                .padding()
+                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+            }
+        }
+    }
+
+    private func deadlineRow(_ entry: DeadlineEntry) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.task.title)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+                Text(entry.project.name)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if let dueDate = entry.task.dueDate {
+                Text(dueDate.formatted(date: .abbreviated, time: .omitted))
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(dueDate < Date() ? .red : .orange)
+            }
+        }
+        .padding(.vertical, 6)
     }
 
     private var activeProjectsSection: some View {
@@ -76,7 +176,12 @@ struct HomeView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(projectStore.projects) { project in
-                            ProjectSummaryCard(project: project)
+                            Button {
+                                selectedProjectForDetail = project
+                            } label: {
+                                ProjectSummaryCard(project: project)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -92,10 +197,15 @@ struct HomeView: View {
             Text("Properties with a Heritage Overlay may need planning approval even for minor exterior changes. Check your property on the Map tab.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+            
+
+    
         }
+        
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
+        
     }
     
     private var userName: String {
@@ -105,28 +215,30 @@ struct HomeView: View {
 
 // Subviews
 
-private struct QuickActionButton: View {
+private struct DeadlineEntry: Identifiable {
+    let project: Project
+    let task: ProjectTask
+    var id: String { task.id }
+}
+
+private struct QuickActionButtonLabel: View {
     let title: String
     let systemImage: String
     let tint: Color
 
     var body: some View {
-        Button {
-            // Some Placeholder action
-        } label: {
-            VStack(spacing: 8) {
-                Image(systemName: systemImage)
-                    .font(.title2)
-                    .foregroundStyle(tint)
-                Text(title)
-                    .font(.caption)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.primary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+        VStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.title2)
+                .foregroundStyle(tint)
+            Text(title)
+                .font(.caption)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.primary)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
     }
 }
 
