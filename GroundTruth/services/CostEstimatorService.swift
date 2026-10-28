@@ -8,7 +8,7 @@
 import Foundation
 import CoreML
 
-enum CostEstamateResult{
+enum CostEstimateResult{
     case available (low: Double, high: Double)
     case unavailable
 }
@@ -20,7 +20,7 @@ final class CostEstimatorService {
         model = try? CostEstimator(configuration: MLModelConfiguration())
     }
     
-    func estimate(for inputs: CostEstimateInputs?) -> CostEstamateResult{
+    func estimate(for inputs: CostEstimateInputs?) -> CostEstimateResult{
         guard let inputs, let model else {return .unavailable}
         guard let prediction = try? model.prediction(
             floorAreaSqm: inputs.floorAreaSqm, projectType: inputs.projectType

@@ -136,6 +136,7 @@ struct ProjectDetailView: View {
     let projectId: String
 
     @EnvironmentObject private var projectStore: ProjectStore
+    @State private var isShowingCostEstimateSheet = false
     @State private var isShowingDocumentPicker = false
     @State private var isUploadingDocument = false
     @State private var newNoteText = ""
@@ -148,6 +149,8 @@ struct ProjectDetailView: View {
     @State private var isShowingEditProject = false
     @State private var isEditingTaskOrder = false
     @State private var errorMessage: String?
+    
+    private let costEstimator = CostEstimatorService()
 
     // Looked up live from the store (rather than held as a static snapshot) so
     // uploads/notes added below show up immediately as Firestore pushes the update.
@@ -169,7 +172,26 @@ struct ProjectDetailView: View {
                     }
 
                     roadmapSection(for: project)
-
+                    
+                    Section("Cost Estimate"){
+                        switch costEstimator.estimate(for: project.costEstimateInputs) {
+                        case .available(let low, let high):
+                            LabeledContent("Estimate"){
+                                VStack(alignment: .trailing){
+                                    Text("\(low, format: .currency(code: "AUD")) - \(high, format: .currency(code: "AUD"))")
+                                    Text("Preliminary")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            Button("Edit Project Scope") {isShowingCostEstimateSheet = true}
+                        case .unavailable:
+                            Text("The project currently does not have enough information to provide an estimate. Add more details, scope or supporting documents to generate a cost estomate")
+                                .foregroundStyle(.secondary)
+                            Button("Add Project Scope", isShowingCostEstimateSheet = true)
+                        }
+                    }
+                    
                     Section("AI Chat") {
                         NavigationLink {
                             ProjectChatView(project: project, projectStore: projectStore)
@@ -248,6 +270,10 @@ struct ProjectDetailView: View {
                 .sheet(isPresented: $isShowingEditProject) {
                     EditProjectView(project: project)
                 }
+                .sheet(isPresented: $isShowingEditProject){
+                    CostEstimateInputSheet(project: project)
+                }
+                
             } else {
                 ContentUnavailableView(
                     "Project Not Found",
