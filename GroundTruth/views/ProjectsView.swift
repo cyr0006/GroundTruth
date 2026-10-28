@@ -171,46 +171,10 @@ struct ProjectDetailView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Section("Cost Estimate") {
-                        switch costEstimator.estimate(for: project.costEstimateInputs) {
-                        case .available(let low, let high):
-                            LabeledContent("Estimate") {
-                                VStack(alignment: .trailing) {
-                                    Text("\(low, format: .currency(code: "AUD")) – \(high, format: .currency(code: "AUD"))")
-                                    Text("Preliminary")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            Button("Edit Project Scope") { isShowingCostEstimateSheet = true }
-                        case .unavailable:
-                            Text("The project currently does not have enough information to provide an estimate. Add more project details, scope, or supporting documents to generate a cost estimate.")
-                                .foregroundStyle(.secondary)
-                            Button("Add Project Scope") { isShowingCostEstimateSheet = true }
-                        }
-                    }
+                    costEstimateSection(for: project)
 
                     roadmapSection(for: project)
-                    
-                    Section("Cost Estimate"){
-                        switch costEstimator.estimate(for: project.costEstimateInputs) {
-                        case .available(let low, let high):
-                            LabeledContent("Estimate"){
-                                VStack(alignment: .trailing){
-                                    Text("\(low, format: .currency(code: "AUD")) - \(high, format: .currency(code: "AUD"))")
-                                    Text("Preliminary")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            Button("Edit Project Scope") {isShowingCostEstimateSheet = true}
-                        case .unavailable:
-                            Text("The project currently does not have enough information to provide an estimate. Add more details, scope or supporting documents to generate a cost estomate")
-                                .foregroundStyle(.secondary)
-                            Button("Add Project Scope", isShowingCostEstimateSheet = true)
-                        }
-                    }
-                    
+
                     Section("AI Chat") {
                         NavigationLink {
                             ProjectChatView(project: project, projectStore: projectStore)
@@ -289,10 +253,9 @@ struct ProjectDetailView: View {
                 .sheet(isPresented: $isShowingEditProject) {
                     EditProjectView(project: project)
                 }
-                .sheet(isPresented: $isShowingEditProject){
+                .sheet(isPresented: $isShowingCostEstimateSheet) {
                     CostEstimateInputSheet(project: project)
                 }
-                
             } else {
                 ContentUnavailableView(
                     "Project Not Found",
@@ -313,6 +276,28 @@ struct ProjectDetailView: View {
 
     private var errorIsPresented: Binding<Bool> {
         Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
+    }
+
+    @ViewBuilder
+    private func costEstimateSection(for project: Project) -> some View {
+        Section("Cost Estimate") {
+            switch costEstimator.estimate(for: project.costEstimateInputs) {
+            case .available(let low, let high):
+                LabeledContent("Estimate") {
+                    VStack(alignment: .trailing) {
+                        Text("\(low, format: .currency(code: "AUD")) – \(high, format: .currency(code: "AUD"))")
+                        Text("Preliminary")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Button("Edit Project Scope") { isShowingCostEstimateSheet = true }
+            case .unavailable:
+                Text("The project currently does not have enough information to provide an estimate. Add more project details, scope, or supporting documents to generate a cost estimate.")
+                    .foregroundStyle(.secondary)
+                Button("Add Project Scope") { isShowingCostEstimateSheet = true }
+            }
+        }
     }
 
     @ViewBuilder
