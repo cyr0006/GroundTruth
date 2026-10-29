@@ -9,7 +9,8 @@ enum ProjectType: String, CaseIterable, Identifiable {
     case newBuild = "New Build"
     case extensionWork = "Extension"
     case renovation = "Renovation"
-    case outdoorWorks = "Outdoor Works"
+    case outdoorStructure = "Outdoor Structure"
+    case boundaryCivilWorks = "Boundary & Civil Works"
 
     var id: String { rawValue }
 }
