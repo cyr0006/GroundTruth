@@ -55,6 +55,7 @@ struct ProjectTask: Identifiable, Hashable, Codable {
 struct CostEstimateInputs: Hashable, Codable{
     var floorAreaSqm: Double
     var projectType: String
+    var workSubtype: String? = nil
 }
 
 /// A file picked on-device but not yet uploaded — the input to `ProjectStore`'s

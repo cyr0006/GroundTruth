@@ -13,6 +13,19 @@ enum ProjectType: String, CaseIterable, Identifiable {
     case boundaryCivilWorks = "Boundary & Civil Works"
 
     var id: String { rawValue }
+
+    /// Boundary & Civil Works (fences/retaining walls/pools) has no meaningful floor area in the
+    /// training data - it's keyed off `BoundaryWorkSubtype` instead. See `CostEstimatorService`.
+    var requiresFloorArea: Bool { self != .boundaryCivilWorks }
+}
+
+enum BoundaryWorkSubtype: String, CaseIterable, Identifiable {
+    case fence = "Fence"
+    case retainingWall = "Retaining Wall"
+    case pool = "Swimming Pool"
+    case other = "Other"
+
+    var id: String { rawValue }
 }
 
 struct CostEstimateInputSheet: View {
@@ -23,6 +36,7 @@ struct CostEstimateInputSheet: View {
 
     @State private var floorAreaSqm: Double
     @State private var projectType: ProjectType
+    @State private var workSubtype: BoundaryWorkSubtype
     @State private var isSaving = false
     @State private var errorMessage: String?
 
@@ -31,18 +45,31 @@ struct CostEstimateInputSheet: View {
         let existing = project.costEstimateInputs
         _floorAreaSqm = State(initialValue: existing?.floorAreaSqm ?? 0)
         _projectType = State(initialValue: ProjectType(rawValue: existing?.projectType ?? "") ?? .newBuild)
+        _workSubtype = State(initialValue: BoundaryWorkSubtype(rawValue: existing?.workSubtype ?? "") ?? .fence)
     }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Project Scope") {
-                    TextField("Floor area (sqm)", value: $floorAreaSqm, format: .number)
-                        .keyboardType(.decimalPad)
                     Picker("Project type", selection: $projectType) {
                         ForEach(ProjectType.allCases) { type in
                             Text(type.rawValue).tag(type)
                         }
+                    }
+
+                    if projectType.requiresFloorArea {
+                        TextField("Floor area (sqm)", value: $floorAreaSqm, format: .number)
+                            .keyboardType(.decimalPad)
+                    } else {
+                        Picker("Type of work", selection: $workSubtype) {
+                            ForEach(BoundaryWorkSubtype.allCases) { subtype in
+                                Text(subtype.rawValue).tag(subtype)
+                            }
+                        }
+                        Text("Fences rarely need a building permit in Victoria, so this is a rule-of-thumb range, not a model prediction.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
@@ -58,7 +85,7 @@ struct CostEstimateInputSheet: View {
                         ProgressView()
                     } else {
                         Button("Save") { saveChanges() }
-                            .disabled(floorAreaSqm <= 0)
+                            .disabled(projectType.requiresFloorArea && floorAreaSqm <= 0)
                     }
                 }
             }
@@ -79,7 +106,11 @@ struct CostEstimateInputSheet: View {
         Task {
             defer { isSaving = false }
             do {
-                let inputs = CostEstimateInputs(floorAreaSqm: floorAreaSqm, projectType: projectType.rawValue)
+                let inputs = CostEstimateInputs(
+                    floorAreaSqm: projectType.requiresFloorArea ? floorAreaSqm : 0,
+                    projectType: projectType.rawValue,
+                    workSubtype: projectType.requiresFloorArea ? nil : workSubtype.rawValue
+                )
                 try await projectStore.setCostEstimateInputs(inputs, for: project)
                 dismiss()
             } catch {
