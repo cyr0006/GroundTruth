@@ -55,6 +55,9 @@ enum GeminiService {
         case .available(let low, let high):
             lines.append("")
             lines.append("Estimated cost of works: $\(Int(low)) - $\(Int(high)) (model estimate, +/-30%, not a quote).")
+        case .ruleOfThumb(let low, let high, let note):
+            lines.append("")
+            lines.append("Estimated cost of works: $\(Int(low)) - $\(Int(high)) (rule of thumb, not a model estimate: \(note)).")
         case .unavailable:
             break
         }

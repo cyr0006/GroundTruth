@@ -292,6 +292,17 @@ struct ProjectDetailView: View {
                     }
                 }
                 Button("Edit Project Scope") { isShowingCostEstimateSheet = true }
+            case .ruleOfThumb(let low, let high, let note):
+                LabeledContent("Estimate") {
+                    VStack(alignment: .trailing) {
+                        Text("\(low, format: .currency(code: "AUD")) – \(high, format: .currency(code: "AUD"))")
+                        Text(note)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
+                Button("Edit Project Scope") { isShowingCostEstimateSheet = true }
             case .unavailable:
                 Text("The project currently does not have enough information to provide an estimate. Add more project details, scope, or supporting documents to generate a cost estimate.")
                     .foregroundStyle(.secondary)
