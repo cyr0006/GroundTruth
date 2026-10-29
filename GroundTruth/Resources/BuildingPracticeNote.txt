@@ -7,11 +7,11 @@ Audience
 
 The audience/s for this Practice Note include/s:
 
- Architects/ Designers                                                         Owner Builders
- Builders                                                                      Plumbers
- Building Surveyors/ Inspectors                                                Real estate management agents
- Engineers                                                                     Trades and Maintenance (inc. Electricians)
- Home Owners / Residential Tenants
+â˜’ Architects/ Designers                                                       â˜’ Owner Builders
+â˜’ Builders                                                                    â˜’ Plumbers
+â˜’ Building Surveyors/ Inspectors                                              â˜’ Real estate management agents
+â˜’ Engineers                                                                   â˜’ Trades and Maintenance (inc. Electricians)
+â˜’ Home Owners / Residential Tenants
 
 Purpose
 
@@ -19,8 +19,8 @@ This Practice Note provides guidance on when a building permit is not required f
 building work.
 The content below provides guidance on:
 
-    · Requirement to obtain a building permit
-    · Exemptions from the requirement to obtain a building permit
+    â€¢ Requirement to obtain a building permit
+    â€¢ Exemptions from the requirement to obtain a building permit
 
  Abbreviations & Definitions
 
@@ -28,11 +28,11 @@ The abbreviations and definitions set out below are for guidance only. They are 
 those set out in the Building Act 1993, the Building Regulations 2018 or the National Construction
 Code.
 
-    · Act ­ Building Act 1993
-    · BCA ­ Building Code of Australia (NCC Volume One and Volume Two)
-    · NCC ­ National Construction Code 2022
-    · RBS ­ Relevant Building Surveyor
-    · Regulations ­ Building Regulations 2018
+    â€¢ Act â€“ Building Act 1993
+    â€¢ BCA â€“ Building Code of Australia (NCC Volume One and Volume Two)
+    â€¢ NCC â€“ National Construction Code 2022
+    â€¢ RBS â€“ Relevant Building Surveyor
+    â€¢ Regulations â€“ Building Regulations 2018
 
 Requirement to obtain a building permit
 
@@ -46,18 +46,18 @@ building permit provides are not necessary or will not be achieved.
 Unless otherwise exempt, pursuant to Section 16 of the Act, a building permit applies to a building
 work that is in connection with the construction, demolition, or removal of a building.
 
-© State of Victoria, Victorian Building Authority 2023                        Page 1 of 7
+Â© State of Victoria, Victorian Building Authority 2023                        Page 1 of 7
 
 building bp 01 - when is a building permit required current 20 dec 2023.docx
 VICTORIAN BUILDING AUTHORITY
 
 To construct a building means:
 
-    · build, re-build, erect or re-erect the building,
-    · repair the building,
-    · make alterations to the building,
-    · enlarge or extend the building, and
-    · place or relocate the building on land.
+    â€¢ build, re-build, erect or re-erect the building,
+    â€¢ repair the building,
+    â€¢ make alterations to the building,
+    â€¢ enlarge or extend the building, and
+    â€¢ place or relocate the building on land.
 
                      It is an offence to carry out building work without a building permit being issued and in force.
                      Building work conducted without a permit will result in heavy penalties, as prescribed under
@@ -78,18 +78,18 @@ Construction of a freestanding Class 10a building
 The construction of a freestanding Class 10a building (e.g. private garage, carport or shed) is exempt
 from requiring a building permit providing that:
 
-    · it has a floor area not exceeding 10m²; and
-    · is not more than 3m in height, or if situated within 1m of a boundary, is no more than 2.4m in
+    â€¢ it has a floor area not exceeding 10mÂ²; and
+    â€¢ is not more than 3m in height, or if situated within 1m of a boundary, is no more than 2.4m in
 
          height; and
-    · if appurtenant to a building of another Class on the same allotment, it is located no further
+    â€¢ if appurtenant to a building of another Class on the same allotment, it is located no further
 
          forward on the allotment than the front wall of the building to which it is appurtenant; and
-    · if it is not appurtenant to a building of another Class on the same allotment, it is the only Class
+    â€¢ if it is not appurtenant to a building of another Class on the same allotment, it is the only Class
 
          10a building on the allotment and is set back at least 9m from the front street alignment and
          at least 2m from each side street alignment; and
-    · it is not constructed of masonry.
+    â€¢ it is not constructed of masonry.
 
                      A planning permit may be required for the construction of a Class 10a building.
                      Where a freestanding Class 10a building is proposed to be located over an easement or an
@@ -101,14 +101,14 @@ Demolition of a freestanding Class 10 building (e.g. private garage, carport, sh
 walls, swimming pools and private bushfire shelters) is exempt from requiring a building permit
 provided that:
 
-· it is not constructed of masonry; and
-· does not exceed 40m2 in floor area; and
-· will not adversely affect the safety of the public or occupiers of the building; and
-· is not work carried out on, or in connection with, a building included on the Heritage Register
+â€¢ it is not constructed of masonry; and
+â€¢ does not exceed 40m2 in floor area; and
+â€¢ will not adversely affect the safety of the public or occupiers of the building; and
+â€¢ is not work carried out on, or in connection with, a building included on the Heritage Register
 
     within the meaning of the Heritage Act 2017.
 
-© State of Victoria, Victorian Building Authority 2023                        Page 2 of 7
+Â© State of Victoria, Victorian Building Authority 2023                        Page 2 of 7
 
 Building BP 01 - When is a building permit required CURRENT 20 Dec 2023.docx
                                          VICTORIAN BUILDING AUTHORITY
@@ -124,24 +124,24 @@ Repair, renewal, or maintenance of an existing building
 Repair, renewal, or maintenance of a part of an existing building is exempt from requiring a building
 permit provided the building work:
 
-    · will not adversely affect the structural soundness of the building, and does not include:
+    â€¢ will not adversely affect the structural soundness of the building, and does not include:
        o an increase or decrease in the floor area or height of the building; or
        o underpinning or replacement of footings; or
        o the removal or alteration of any element of the building that is contributing to the support of
             any other element of the building; and
 
-    · is done using materials commonly used for the same purpose as the material being replaced;
+    â€¢ is done using materials commonly used for the same purpose as the material being replaced;
          and
 
-    · will not adversely affect the safety of the public or occupiers of the building; and
-    · will not adversely affect an essential safety measure relating to the building.
+    â€¢ will not adversely affect the safety of the public or occupiers of the building; and
+    â€¢ will not adversely affect an essential safety measure relating to the building.
 
  Examples of exempted building work:
-       · Repairing or renewing damaged weatherboards,
-       · Repairing or renewing non-fire rated wall, ceiling, or floor linings,
-       · Retiling a bathroom or kitchen,
-       · Reglazing or replacing a window without structural modifications, or
-      · Repairing parts of roofs with roof tiles or roof sheeting.
+       â€¢ Repairing or renewing damaged weatherboards,
+       â€¢ Repairing or renewing non-fire rated wall, ceiling, or floor linings,
+       â€¢ Retiling a bathroom or kitchen,
+       â€¢ Reglazing or replacing a window without structural modifications, or
+      â€¢ Repairing parts of roofs with roof tiles or roof sheeting.
 
  Note: full replacement of elements of the building does not constitute repair, renewal or maintenance and
  must be treated as an alteration. Refer to the Alterations section below for exemptions for building work
@@ -150,22 +150,22 @@ permit provided the building work:
 Alterations to a building
 Alterations to a building are exempt from requiring a building permit provided the building work:
 
-    · will not adversely affect the structural soundness of the building, and does not include:
+    â€¢ will not adversely affect the structural soundness of the building, and does not include:
        o an increase or decrease in the floor area or height of the building; or
        o underpinning or replacement of footings; or
        o the removal or alteration of any element of the building that is contributing to the support of
             any other element of the building; and
 
-    · will not project beyond the street alignment; and
-    · will not adversely affect the safety of the public or occupiers of the building; and
-    · is not work carried out on, or in connection with, a building included on the Heritage Register
+    â€¢ will not project beyond the street alignment; and
+    â€¢ will not adversely affect the safety of the public or occupiers of the building; and
+    â€¢ is not work carried out on, or in connection with, a building included on the Heritage Register
 
          within the meaning of the Heritage Act 2017; and
-    · is not work in relation to, and will not adversely affect, an essential safety measure relating to
+    â€¢ is not work in relation to, and will not adversely affect, an essential safety measure relating to
 
          the building.
 
-© State of Victoria, Victorian Building Authority 2023                        Page 3 of 7
+Â© State of Victoria, Victorian Building Authority 2023                        Page 3 of 7
 
 Building BP 01 - When is a building permit required CURRENT 20 Dec 2023.docx
                                          VICTORIAN BUILDING AUTHORITY
@@ -174,10 +174,10 @@ Class 10b structure for the purposes of displaying a sign
 A Class 10b structure that is built for the purpose of displaying a sign is exempt from requiring a
 building permit provided the structure:
 
-    · is less than 3m from a street alignment and does not exceed 1m in height above ground level;
+    â€¢ is less than 3m from a street alignment and does not exceed 1m in height above ground level;
          or
 
-    · is not less than 3m from a street alignment and does not exceed--
+    â€¢ is not less than 3m from a street alignment and does not exceedâ€”
        o a height of 8m above ground level; and
        o 6m2 in display area.
 
@@ -186,12 +186,12 @@ A pergola is defined in the Regulations as an open structure that is unroofed bu
 covering of open weave permeable material.
 
 Pergolas are exempt from requiring a building a permit providing that it:
-    · is not more than 3.6m in height; and
-    · in the case of a pergola that is appurtenant to a Class 1 building, is located no further forward
+    â€¢ is not more than 3.6m in height; and
+    â€¢ in the case of a pergola that is appurtenant to a Class 1 building, is located no further forward
          on the allotment than 2.5m forward of the front wall of that building; and
-    · in any other case, is located no further forward on the allotment than the front wall of that
+    â€¢ in any other case, is located no further forward on the allotment than the front wall of that
          building to which it is appurtenant; and
-    · has a floor area not exceeding 20m2.
+    â€¢ has a floor area not exceeding 20m2.
 
                      Any building work that is exempt, must still be designed and constructed to resist applied
                      loads and to ensure it does not adversely affect any building to which it is attached.
@@ -225,7 +225,7 @@ considered prior to the installation.
 An assessment of the support structure by a registered civil engineer should be obtained so that all
 loading conditions, installation, and fixing methods are considered.
 
-© State of Victoria, Victorian Building Authority 2023                        Page 4 of 7
+Â© State of Victoria, Victorian Building Authority 2023                        Page 4 of 7
 
 Building BP 01 - When is a building permit required CURRENT 20 Dec 2023.docx
                                          VICTORIAN BUILDING AUTHORITY
@@ -246,16 +246,16 @@ A building permit is required for detached decks as part of the amenity to a bui
 
 Fences
 Fences other than fences forming part of a swimming pool or spa barrier or forming part of an
-outdoor play space associated with a children's services, are exempt from a building permit if:
+outdoor play space associated with a childrenâ€™s services, are exempt from a building permit if:
 
-    · is not more than 2m in height; and
-    · If within 3m of a street (except a lane, footway, alley or right of way) is a maximum of 1.5m
+    â€¢ is not more than 2m in height; and
+    â€¢ If within 3m of a street (except a lane, footway, alley or right of way) is a maximum of 1.5m
 
          high and not constructed of masonry, concrete or similar; and
-    · If within 3m of a street (except a lane, footway, alley or right of way) is a maximum of 1.2m
+    â€¢ If within 3m of a street (except a lane, footway, alley or right of way) is a maximum of 1.2m
 
          high constructed of masonry, concrete or similar; and
-    · If within 9m of a point of intersection of street alignment (e.g. corner blocks) is a maximum of
+    â€¢ If within 9m of a point of intersection of street alignment (e.g. corner blocks) is a maximum of
 
          1m high above the footpath.
 
@@ -275,61 +275,61 @@ A building permit is not required for replacing or altering any part of a barrie
 compliance identified in an inspection by a swimming pool and spa inspector unless the building work
 involves:
 
-    · Replacing or altering more than 50% of the existing length of the barrier; or
-    · Replacing or altering the posts or footings of the barrier; or
-    · Using materials that are not commonly used for the same purpose as the material being
+    â€¢ Replacing or altering more than 50% of the existing length of the barrier; or
+    â€¢ Replacing or altering the posts or footings of the barrier; or
+    â€¢ Using materials that are not commonly used for the same purpose as the material being
 
          replaced; or
-    · Increasing or decreasing the length or area enclosed by the barrier; or
-    · Replacing or altering a retaining wall that forms part of the barrier.
+    â€¢ Increasing or decreasing the length or area enclosed by the barrier; or
+    â€¢ Replacing or altering a retaining wall that forms part of the barrier.
 
-© State of Victoria, Victorian Building Authority 2023                        Page 5 of 7
+Â© State of Victoria, Victorian Building Authority 2023                        Page 5 of 7
 
 Building BP 01 - When is a building permit required CURRENT 20 Dec 2023.docx
                   VICTORIAN BUILDING AUTHORITY
 
 Note:
-    · A swimming pool means any excavation or structure (including a spa or relocatable structure)
+    â€¢ A swimming pool means any excavation or structure (including a spa or relocatable structure)
          that is capable of containing 300mm depth of water and is principally used, designed,
          manufactured or adapted to be principally used for swimming, wading, paddling, bathing or
          similar activities.
-    · A relocatable swimming pool or spa must have a compliant barrier and must be registered
+    â€¢ A relocatable swimming pool or spa must have a compliant barrier and must be registered
          with the council if erected for 3 or more consecutive days.
-    · Swimming pools that do not consist of multiple components and do not require any assembly
+    â€¢ Swimming pools that do not consist of multiple components and do not require any assembly
          such as small inflatable pools that require no assembly other than inflation, do not require a
          building permit as they are not considered buildings.
 
                      While many of the above-mentioned exemptions do not require the issue of a building permit,
                      attention must be given to column 3 under Schedule 3 of the Regulations, as some
-                     exemptions only apply to Parts 3 ­ 19, etc. of the Regulations therefore, as Part 2 adopts the
+                     exemptions only apply to Parts 3 â€“ 19, etc. of the Regulations therefore, as Part 2 adopts the
                      BCA, compliance with the BCA is required despite the exemption from a permit.
 
 Related Documentation
 
-     · Building Act 1993
-     · Building Regulations 2018
-     · Heritage Act 2017
-     · National Construction Code 2022
+     â€¢ Building Act 1993
+     â€¢ Building Regulations 2018
+     â€¢ Heritage Act 2017
+     â€¢ National Construction Code 2022
 
 List of Amendments
 
-     · Changes to reference the new NCC 2022 version
-     · Minor amendments to provide clarity and improve readability
-     · Update format and content review
+     â€¢ Changes to reference the new NCC 2022 version
+     â€¢ Minor amendments to provide clarity and improve readability
+     â€¢ Update format and content review
 
 Document history  Building
 Sector            Building permits
 Category          When is a building permit required
 Topic             01
 Document number   5.1
-Version           · Version 5.0, Published 1 November 2023
-                  · Version 4.0, published 20 April 2023
-Superseded        · Version 3.1, published 20 October 2022
-                  · Version 3.0, published 19 April 2022
-Published         · Version 2.0, published 28 June 2021
+Version           â€¢ Version 5.0, Published 1 November 2023
+                  â€¢ Version 4.0, published 20 April 2023
+Superseded        â€¢ Version 3.1, published 20 October 2022
+                  â€¢ Version 3.0, published 19 April 2022
+Published         â€¢ Version 2.0, published 28 June 2021
                   20 December 2023
 
-© State of Victoria, Victorian Building Authority 2023                        Page 6 of 7
+Â© State of Victoria, Victorian Building Authority 2023                        Page 6 of 7
 
 Building BP 01 - When is a building permit required CURRENT 20 Dec 2023.docx
                                         VICTORIAN BUILDING AUTHORITY
@@ -347,19 +347,19 @@ Contact Us
 Copyright and Disclaimer
 
    Copyright
-   © 2021 Victorian Building Authority (VBA). This publication must not be copied, reproduced, published, adapted, or communicated by
-   any person without the VBA's prior written consent or as permitted by the Copyright Act 1968 (Cth)
+   Â© 2021 Victorian Building Authority (VBA). This publication must not be copied, reproduced, published, adapted, or communicated by
+   any person without the VBAâ€™s prior written consent or as permitted by the Copyright Act 1968 (Cth)
    Disclaimer
-   The information set out in the VBA's resources is for general information purposes and guidance only. It is a reader's responsibility to
+   The information set out in the VBAâ€™s resources is for general information purposes and guidance only. It is a readerâ€™s responsibility to
    obtain independent advice in respect of the application of legislation, a technical instruction or industry standard relevant to their
-   circumstances. A person's use of the VBA's resources is not a substitute for obtaining independent advice. While we have made
+   circumstances. A personâ€™s use of the VBAâ€™s resources is not a substitute for obtaining independent advice. While we have made
    every attempt to ensure our resources contain correct information at the date of publication, the VBA makes no warranty or
    representation that its resources are error free. To the extent permitted by applicable laws, the VBA, its employees, agents and
    consultants exclude any and all liability whatsoever for any direct, indirect, incidental, special or consequential loss or damage a
-   person may suffer arising out of or in connection with the access and use of the VBA's resources '(including any third-party material
-   included in these resources).'
+   person may suffer arising out of or in connection with the access and use of the VBAâ€™s resources â€™(including any third-party material
+   included in these resources).â€™
 
-© State of Victoria, Victorian Building Authority 2023                        Page 7 of 7
+Â© State of Victoria, Victorian Building Authority 2023                        Page 7 of 7
 
 Building BP 01 - When is a building permit required CURRENT 20 Dec 2023.docx
 
