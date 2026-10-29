@@ -5,6 +5,7 @@
 //
 
 
+import FirebaseAILogic
 import Foundation
 internal import Combine
 
