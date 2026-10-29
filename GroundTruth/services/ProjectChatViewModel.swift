@@ -41,7 +41,7 @@ final class ProjectChatViewModel: ObservableObject {
             defer { isSending = false }
             do {
                 let response = try await chat.sendMessage(cleaned)
-                let reply = response.text ?? "I didn't get a response for that — please try again."
+                let reply = response.text ?? "I didn't get a response for that — try rephrasing."
                 messages.append(ChatMessage(role: .assistant, text: reply))
                 persistMessages()
             } catch {
