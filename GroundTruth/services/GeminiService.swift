@@ -74,15 +74,30 @@ enum GeminiService {
     }
 
     private static func planningSchemeBlock(for project: Project) async -> String? {
-        guard let coordinate = await resolveCoordinate(for: project.address) else { return nil }
-        guard let info = try? await VicmapPlanningService().fetchPlanningInfo(at: coordinate) else { return nil }
-        guard let fullText = RegulatoryExerptService.planningSchemeFullText() else { return nil }
+        guard let coordinate = await resolveCoordinate(for: project.address) else {
+            print("🔴 GeminiService: geocoding failed for address: \(project.address)")
+            return nil
+        }
+        print("🟢 GeminiService: geocoded to \(coordinate.latitude), \(coordinate.longitude)")
+
+        guard let info = try? await VicmapPlanningService().fetchPlanningInfo(at: coordinate) else {
+            print("🔴 GeminiService: Vicmap lookup threw/failed")
+            return nil
+        }
+        print("🟢 GeminiService: zoneCode=\(info.zoneCode ?? "nil"), overlayCodes=\(info.overlayCodes)")
+
+        guard let fullText = RegulatoryExerptService.planningSchemeFullText() else {
+            print("🔴 GeminiService: PlanningScheme.txt failed to load from bundle")
+            return nil
+        }
+        print("🟢 GeminiService: loaded PlanningScheme.txt, \(fullText.count) chars")
 
         let excerpts = RegulatoryExerptService.planningSchemeExcerpts(
             zoneCode: info.zoneCode,
             overlayCodes: info.overlayCodes,
             fullText: fullText
         )
+        print("🟢 GeminiService: found \(excerpts.count) excerpt(s)")
         guard !excerpts.isEmpty else { return nil }
 
         var block = ["PLANNING SCHEME EXCERPT(S) - Cardinia Planning Scheme (clause(s) relevant to this property's zone/overlay)"]
