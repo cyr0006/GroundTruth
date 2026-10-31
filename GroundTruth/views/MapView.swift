@@ -67,6 +67,8 @@ struct MapView: View {
                         Marker(selectedAddress, systemImage: "mappin", coordinate: selectedCoordinate)
                             .tint(.red)
                     }
+
+                    UserAnnotation()
                 }
 
                 // MapCompass dropped: its default top-trailing position collided with the
