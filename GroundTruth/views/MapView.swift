@@ -216,6 +216,10 @@ struct MapView: View {
             .padding(.vertical, 8)
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityValue(isOn.wrappedValue ? "On" : "Off")
+        .accessibilityAddTraits(.isButton)
     }
 
     private func zoneCategoryBinding(for category: PlanningStyle.ZoneCategory) -> Binding<Bool> {

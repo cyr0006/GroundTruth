@@ -141,6 +141,7 @@ struct ProjectChatView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
+        .accessibilityElement(children: .combine)
     }
 
     private func formatted(_ text: String) -> AttributedString {

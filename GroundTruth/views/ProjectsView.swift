@@ -290,6 +290,8 @@ struct ProjectDetailView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Estimated cost \(low, format: .currency(code: "AUD")) to \(high, format: .currency(code: "AUD")), preliminary")
                 }
                 Button("Edit Project Scope") { isShowingCostEstimateSheet = true }
             case .ruleOfThumb(let low, let high, let note):
@@ -301,6 +303,8 @@ struct ProjectDetailView: View {
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.trailing)
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Estimated cost \(low, format: .currency(code: "AUD")) to \(high, format: .currency(code: "AUD")). \(note)")
                 }
                 Button("Edit Project Scope") { isShowingCostEstimateSheet = true }
             case .unavailable:
