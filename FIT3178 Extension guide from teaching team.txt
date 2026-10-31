@@ -1,0 +1,47 @@
+Do the following:
+1. Develop one significant extension to your application.
+a. The extension must be from one or more of the topics covered during the
+semester (listed below under expected complexity), or another iOS
+technology approved by your teaching staff
+2. The implemented feature should:
+a. Provide meaningful additional functionality for the application
+b. Integrate naturally with the existing user experience
+FIT3178 iOS App Development
+C4 - Application Extension
+c. Demonstrate an appropriate level of technical complexity
+d. Be fully functional and tested
+3. Document the feature by describing:
+a. The purpose of the feature
+b. The user problem it addresses
+c. The iOS technologies or frameworks used
+d. How the feature integrates with the existing application
+4. Provide evidence demonstrating the feature in operation. Evidence may include:
+a. Screenshots
+b. Screen recordings
+c. Sample data
+d. Other relevant artefacts
+5. You may be asked to discuss:
+a. Why you selected this feature
+b. The challenges encountered during implementation
+c. The most significant technical concepts applied
+d. What you learned from implementing the extension
+Expected Complexity
+This task is intended to distinguish applications demonstrating advanced technical
+achievement.
+A successful extension should demonstrate a measurable increase in technical complexity
+beyond the core application requirements. This may include one substantial feature or
+several closely related components that work together to provide significant additional
+functionality.
+Examples of appropriate extensions include:
+● Real-time synchronisation using Firebase (Week 6)
+● Location-aware functionality using Maps and Core Location (Week 7)
+● Rich media support using audio or video frameworks (Week 8)
+● Gesture-based interaction beyond standard interface controls (Week 9)
+● Interactive data visualisation using Swift Charts (Week 9)
+● AI integration within the applications functionality (Week 10)
+● Local notifications driven by user behaviour or application data (Week 10)
+● Deep linking between application content (Week 10)
+● Integration of multiple iOS frameworks to deliver a cohesive feature.
+● Another feature of comparable complexity approved by your teaching staff.
+Simply adding additional screens, duplicating existing functionality, or making cosmetic
+interface improvements will not satisfy the expectations of this task

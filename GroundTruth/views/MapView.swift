@@ -21,7 +21,7 @@ struct MapView: View {
     @State private var searchText = ""
     @State private var enabledZoneCategories: Set<PlanningStyle.ZoneCategory> = Set(PlanningStyle.ZoneCategory.allCases)
     @State private var enabledOverlayCategories: Set<PlanningStyle.OverlayCategory> = []
-    @State private var sheetDetent: PresentationDetent = .height(100)
+    @State private var sheetDetent: PresentationDetent = .height(140)
     @State private var selectedAddress: String?
     @State private var selectedCoordinate: CLLocationCoordinate2D?
     @State private var showPropertyProfile = false
