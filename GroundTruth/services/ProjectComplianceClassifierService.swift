@@ -25,7 +25,7 @@ import FirebaseAILogic
 enum ProjectComplianceClassifierService {
     // Stronger tier than the chat model - verify this exact name is available to this
     // Firebase project on first run; swap if it 404s.
-    private static let modelName = "gemini-3.1-flash"
+    private static let modelName = "gemini-3.5-flash-lite"
 
     static func assess(project: Project) async -> ProjectComplianceAssessment? {
         guard let inputs = project.costEstimateInputs else { return nil }
@@ -159,7 +159,10 @@ enum ProjectComplianceClassifierService {
         if let coordinate = await resolveCoordinate(for: project.address),
            let info = try? await VicmapPlanningService().fetchPlanningInfo(at: coordinate) {
             lines.append("Zone code: \(info.zoneCode ?? "unknown")")
-            lines.append("Overlay codes: \(info.overlayCodes.isEmpty ? "none" : info.overlayCodes.joined(separator: ", "))")
+            let overlayCodes = info.overlayCodes.compactMap { $0 }
+            lines.append(
+                "Overlay codes: \(overlayCodes.isEmpty ? "none" : overlayCodes.joined(separator: ", "))"
+            )
 
             if let fullText = RegulatoryExerptService.planningSchemeFullText() {
                 let excerpts = RegulatoryExerptService.planningSchemeExcerpts(
