@@ -12,7 +12,7 @@ struct AppearanceView: View {
 
     private var accentColorBinding: Binding<Color> {
         Binding(
-            get: { Color(hex: accentColorHex) ?? .blue },
+            get: { Color(hex: accentColorHex) ?? AccentColorStore.defaultColor },
             set: { accentColorHex = $0.hexString }
         )
     }

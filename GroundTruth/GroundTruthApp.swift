@@ -44,7 +44,7 @@ struct GroundTruthApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
-                .tint(Color(hex: accentColorHex) ?? .blue)
+                .tint(Color(hex: accentColorHex) ?? AccentColorStore.defaultColor)
         }
     }
 }

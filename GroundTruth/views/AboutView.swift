@@ -11,8 +11,13 @@ struct AboutView: View {
     @AppStorage(AccentColorStore.storageKey) private var accentColorHex = AccentColorStore.defaultHex
 
     private var accentColor: Color {
-        Color(hex: accentColorHex) ?? .blue
+        Color(hex: accentColorHex) ?? AccentColorStore.defaultColor
     }
+
+    // Fixed brand pair from the logo artwork — used only here, on a background this
+    // view controls, rather than as a general tint that could clash with the system's.
+    private let logoBackground = Color(hex: "#123D36FF") ?? .black
+    private let logoForeground = Color(hex: "#F3F0E3FF") ?? .white
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -23,11 +28,17 @@ struct AboutView: View {
             List {
                 Section {
                     VStack(spacing: 12) {
-                        Image(systemName: "house.and.flag.fill")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 56, height: 56)
-                            .foregroundStyle(accentColor)
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(logoBackground)
+                                .frame(width: 88, height: 88)
+
+                            Image(systemName: "house.and.flag.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 44, height: 44)
+                                .foregroundStyle(logoForeground)
+                        }
 
                         Text("GroundTruth")
                             .font(.title2)

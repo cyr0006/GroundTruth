@@ -54,7 +54,7 @@ struct HomeView: View {
     }
 
     private var accentColor: Color {
-        Color(hex: accentColorHex) ?? .blue
+        Color(hex: accentColorHex) ?? AccentColorStore.defaultColor
     }
 
     //Sections

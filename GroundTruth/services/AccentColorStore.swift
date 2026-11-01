@@ -12,8 +12,9 @@ import UIKit
 /// mode, which stays under the device's own Display & Brightness setting per Apple's HIG.
 enum AccentColorStore {
     static let storageKey = "accentColorHex"
-    /// Matches SwiftUI's system default tint, so an unset preference looks unchanged.
-    static let defaultHex = "#007AFFFF"
+    /// The app's brand orange, matching Assets.xcassets/AccentColor.
+    static let defaultHex = "#F09A65FF"
+    static var defaultColor: Color { Color(hex: defaultHex) ?? .orange }
 }
 
 extension Color {
