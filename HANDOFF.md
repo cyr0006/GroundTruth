@@ -2,85 +2,139 @@
 
 ## Where things stand
 
-The previous handoff on this file (`refinement/AI-context`) covered grounding the AI advisor in real
-regulatory text. That work is done and shipped: `GeminiService.swift` builds its system instruction from
-project data plus the on-device cost estimate plus a `RegulatoryExerptService`-selected excerpt of the
-Cardinia Planning Scheme and the Building Practice Note, resolved live per-project via
-`VicmapPlanningService`. No further work is planned there unless a bug turns up.
+Earlier work on this branch (location permission crash, stuck map sheet, stale location dot,
+Firestore owner-scoped rules, three accessibility fixes) is done and shipped — see git log
+(`c679d01`, `f142840`, `4348d2d`, `130d1f5`) if the detail is needed again. The AI-chat grounding
+work from `refinement/AI-context` (regulatory excerpts via `RegulatoryExerptService`, resolved
+live via `VicmapPlanningService`) is also done and unchanged.
 
-Since then, this branch (`refinement/qol`) has been going through an App Store readiness pass, fixing
-issues as they're found rather than just documenting them. Fixed so far:
+Since then, this session did a substantial demo-polish pass, working through the "two dead rows"
+and "costing is unclear" feedback from the previous handoff, in roughly this order:
 
-- **Location permission crash** (`c679d01`): `MapUserLocationButton()` in `MapView` had no
-  `NSLocationWhenInUseUsageDescription`, so tapping it hung/crashed instead of prompting. Added
-  `INFOPLIST_KEY_NSLocationWhenInUseUsageDescription` to both Debug and Release build configs in
-  `project.pbxproj`.
-- **Stuck map bottom sheet** (`f142840`): `MapView`'s `sheetDetent` initial state (`.height(100)`) wasn't
-  a member of its own `presentationDetents` array (`[.height(140), .medium, .large]`), which SwiftUI
-  silently rejected and which got exposed whenever the locate-me button forced a layout pass. Fixed by
-  initializing `sheetDetent` to `.height(140)` instead.
-- **Grey/stale user-location dot** (`4348d2d`): `MapView`'s `Map` content never included `UserAnnotation()`,
-  so MapKit had nothing to render the live, updating blue dot with. Added.
-- **Firestore security rules**: the console had `allow read, write: if request.auth.uid != null` on
-  `/{document=**}`, i.e. any signed-in user could read/write any other user's data. Replaced (in the
-  Firebase console, not committed to this repo — see Open Questions) with rules scoped to
-  `request.auth.uid == resource.data.ownerId` / `== userId`, matching `Project.ownerId` and the
-  `users/{userId}` profile doc shape.
-- **Three accessibility fixes** (`130d1f5`): chat message bubbles now read as one grouped VoiceOver element
-  (`ProjectChatView.messageBubble`) instead of three separate swipes; the map's zone/overlay filter rows
-  now expose an explicit name + on/off state instead of VoiceOver reading the raw SF Symbol name off the
-  checkbox icon (`MapView.categoryRow`); the cost estimate range now has an explicit "X to Y" accessibility
-  label instead of leaving VoiceOver to interpret an en dash (`ProjectsView.costEstimateSection`).
+- **About page** (`17d6002`): `ProfileView`'s inert "About GroundTruth" row now pushes a real
+  `AboutView.swift` — a laymen's description of what the app does, written for a demo audience.
+- **Customisable accent colour** (`e7794a1`, `8995ac6`): `ProfileView`'s "Appearance" placeholder
+  now pushes `AppearanceView.swift` with a real `ColorPicker`, stored via `AccentColorStore`
+  (`@AppStorage`, hex string) and applied with `.tint()` at the app root
+  (`GroundTruthApp.swift`). Deliberately does **not** touch light/dark mode — Apple's HIG says
+  that should stay under the system setting, not be overridden by the app. Default is the brand
+  orange `#F09A65`, applied to both the `AccentColor` asset catalog entry and the
+  `AccentColorStore` default so system surfaces and SwiftUI's `.tint()` agree.
+- **App icon** (`53f8c41`, `348a0b8`): A Figma-designed icon run through Icon Kitchen had landed
+  in the wrong place — its legacy per-size PNGs and `Contents.json` loose in `Assets.xcassets/`
+  instead of inside `AppIcon.appiconset/`, which had also overwritten the catalog's own
+  `Contents.json`. Fixed: catalog `Contents.json` restored, the one real 1024×1024 master moved
+  into `AppIcon.appiconset/AppIcon-1024.png`, flattened from RGBA to RGB (Apple's App Store
+  Connect validation rejects any alpha channel, even fully opaque), and wired into all three
+  appearance slots (default/dark/tinted) — all three currently share the one image; true
+  dark/tinted variants are a possible follow-up, not done.
+- **FAQ expanded** (`388a9ea`): grew from 5 to 13 entries — added "what is a planning/building
+  permit," the step-order of a project, other council permits that might apply, permit
+  lifespans, exempt work, owner-builder rules, neighbour notification, and three
+  app-specific entries ("how does GroundTruth know my zone," "how accurate is the cost
+  estimate," "where do I upload documents"). New categories: Getting Started, Other Permits,
+  Using GroundTruth.
+- **Home screen chart** (`92ffd95`): a "Deadlines Over the Next 8 Weeks" line/area chart
+  (SwiftUI `Charts`) sits between Upcoming Deadlines and Your Projects — real data, bucketed
+  weekly from the same incomplete-task due dates the deadlines list already uses, not a
+  fabricated series. Single series, tinted with the user's accent colour, no legend needed.
+- **Status now tracks the roadmap** (`91b34a2`): `ProjectTask` gained a `phase: ProjectStatus`
+  field (segmented picker when adding a step; a tappable `Menu` badge to reassign it after).
+  `Project.effectiveStatus` derives the displayed status as the earliest phase with an
+  incomplete step — finishing every step in a phase ticks the project over to the next one
+  automatically. The old manual Status `Picker` in Edit Project only shows before any tasks
+  exist; once there are tasks, it's a read-only badge with an explanatory caption, so it can't
+  look like a dead control that silently does nothing.
+- **Cost breakdown overhaul — the big one** (`9f40892` → `991e499`, five commits): replaced the
+  single opaque "cost to build" number with four real line items — Construction (the existing
+  ML model, now clearly labelled), Building Permit (a ~0.75%-of-cost-of-works formula), Planning
+  Permit (looked up from Victoria's actual 2026-27 fee-class table — `PlanningPermitFeeClass`),
+  and a 5-item Council Approvals checklist (`CouncilApprovalType` — real Cardinia Shire figures
+  for Asset Protection, Vehicle Crossing, Legal Point of Discharge, Tree Removal; Septic Tank
+  fee genuinely unpublished, shown as "cost not published" rather than a guess). Whether each
+  one applies at all is decided by **one combined Gemini call**
+  (`ProjectComplianceClassifierService`) grounded in the same zone/overlay +
+  Planning-Scheme-excerpt + Building Practice Note data the chat already resolves, using a
+  5-tier qualitative likelihood scale (`Required` → `Not required`) rather than a binary
+  yes/no or a fake numeric probability. The AI only ever picks a likelihood tier and (for
+  planning permit) a fee-class id — it never states a dollar figure; the app always looks that
+  up from the hardcoded tables. Cached on `Project.complianceAssessment`, recomputed
+  automatically when project scope is saved, or manually via an "Assess/Re-assess Permits &
+  Approvals" button on the cost screen.
 
-## What's still open from the App Store readiness audit (not yet fixed)
+## Not yet verified by an actual build/run
 
-These were identified but are **not** blocking the current goal (see below) unless they start getting in
-the way of demoing the app:
+Everything above was written on Windows without an Xcode toolchain, so none of it has been
+compiled until the user builds on their Mac. One real bug has already surfaced and been fixed
+this way: `Schema.object(...)` doesn't take a `requiredProperties:` parameter (verified against
+the actual `firebase-ios-sdk` source on GitHub — every key in `properties` is required by
+default; `optionalProperties:` is how you'd exempt one). The model name was also corrected
+independently (`991e499`) from `gemini-3.1-flash` to `gemini-3.5-flash-lite` — presumably the
+former wasn't available to this Firebase project.
 
-- No in-app account deletion (Guideline 5.1.1(v)) — `ProfileView` only has Sign Out.
-- No app icon images — `AppIcon.appiconset/Contents.json` still has empty slots for all three
-  (light/dark/tinted) 1024x1024 variants. This blocks archiving for submission, not just review, but
-  doesn't affect running the app in Simulator/on a device for a demo.
-- No privacy policy, and no link to one from `ProfileView`'s inert "About GroundTruth" row.
-- No `PrivacyInfo.xcprivacy` manifest on the app target.
-- `GroundTruthApp.swift`'s `AppDelegate` still installs `AppCheckDebugProviderFactory()` unconditionally;
-  fine for a demo, needs swapping to a real App Attest/DeviceCheck provider before any real release build.
-- Storage rules (`storage.rules`, separate from Firestore's rules, covers uploaded project documents) —
-  status unconfirmed, see Open Questions.
-- `ProfileView`'s "Appearance" row is a literal `Text("Appearance settings coming soon.")` placeholder.
+Given that history, treat `ProjectComplianceClassifierService` as the least-proven file in the
+app: confirm it actually returns a decodable response end-to-end (not just that it compiles),
+and sanity-check the five council-approval rows and the two permit rows render correctly with
+real data. Also worth a first look: the Home screen chart's layout at actual device width, and
+the app icon across light/dark/tinted (the Mac work to replace them with distinct images, if
+wanted, hasn't been done).
 
-None of these are Swift logic bugs; they're either Xcode project configuration, Firebase console
-configuration, or missing assets/copy.
+## Known, intentional gaps (not bugs — flagged so they're not re-discovered as surprises)
+
+- **The AI chat still doesn't read uploaded document contents** — `GeminiService.swift` tells
+  the model "names only, contents not available to you." Raised and deliberately deferred;
+  doing this properly means extracting text from each upload and feeding relevant excerpts in,
+  similar to the bundled Planning Scheme/Practice Note grounding. Meaningfully bigger than
+  everything else in this list — scope it out explicitly before starting.
+- **Fee schedules are 2026-27 figures and need annual re-verification.** Victoria's fee unit
+  (and therefore every `PlanningPermitFeeClass` amount) changes every 1 July; Cardinia Shire's
+  council fees in `CouncilApprovalSchedule.swift` likewise. Both files say so in comments.
+- **Quick-add tasks in `NewProjectView`'s checklist all default to the Planning phase** (no
+  phase picker in that quick-create flow, unlike the detail view's "Add a step" row). This is a
+  deliberate scope boundary, not an oversight — it means a freshly created project with only
+  quick-added steps will show status "Planning" until steps are tagged via the detail view.
+- **Council approvals checklist is 5 items, not the 6 the FAQ lists** — "road/footpath
+  occupation" was folded into Asset Protection Permit rather than kept separate, since in
+  Cardinia's actual fee structure they appear to be the same permit.
+
+## What's still open from the original App Store readiness audit (untouched this session)
+
+Still not blocking the demo goal unless they get in the way:
+
+- No in-app account deletion (Guideline 5.1.1(v)).
+- No privacy policy (the About page doesn't link one either).
+- No `PrivacyInfo.xcprivacy` manifest.
+- `AppDelegate` still installs `AppCheckDebugProviderFactory()` unconditionally.
+- Storage rules (`storage.rules`) scoping status still unconfirmed — see Open Questions below,
+  carried over from before.
 
 ## Current goal: refine UI, QOL, and functionality for the demo
 
-Direction has shifted from "prepare for App Store submission" to "make the app demo well." This is a
-looser, less checklist-shaped goal than the readiness audit was, so the next session should work from
-actual observed friction (either from running the app, or from whatever the next message raises) rather
-than assuming a fixed list. Worth deliberately re-testing the flows most likely to get exercised live in a
-demo: creating a project end to end, the map's zone/overlay search and filtering, the AI chat (including a
-case where regulatory grounding fails to resolve, to see how gracefully it degrades), and the cost
-estimator's fallback states.
-
-Two things already known to be rough and worth prioritizing if nothing more pressing turns up:
-1. `ProfileView`'s "Appearance" and "About GroundTruth" rows are dead/placeholder UI — a demo-visible
-   screen with "coming soon" text looks unfinished even if it's not a functional bug.
-2. No accessibility work has been done beyond the three specific fixes above; they were chosen because
-   they were the clearest, most isolated wins, not because they're the only gaps.
+Still the operative goal. The two "obviously unfinished" rows from the last handoff (About,
+Appearance) are done, the FAQ is fleshed out, and the costing story — the most-flagged
+complaint — now has real structure and real numbers behind it instead of one fabricated
+blended figure. The natural next focus, once the Mac build confirms everything above actually
+works: the document-AI-awareness gap, and another pass at re-testing the core demo flows
+end-to-end (create a project, map zone/overlay search, AI chat, cost + compliance breakdown)
+now that several of them changed meaningfully this session.
 
 ## Open questions for next session
 
-- Does a `storage.rules` file (or equivalent console configuration) exist and is it scoped per-owner the
-  same way Firestore's rules now are? Not yet confirmed either way.
-- Should `firestore.rules` (and `storage.rules` once checked) be committed into this repo as actual files
-  rather than living only in the Firebase console? Would make them reviewable/versioned; flagged as a
-  suggestion previously, not yet acted on.
-- What's actually most valuable to polish for the demo — is there a specific flow the demo will walk
-  through, or should refinement be broad across the app?
+- Does `storage.rules` exist and match Firestore's per-owner scoping? Still not confirmed either
+  way, carried over unresolved from the previous handoff.
+- Should `firestore.rules`/`storage.rules` be committed into this repo rather than living only in
+  the Firebase console? Still just a suggestion, not acted on.
+- Does `gemini-3.5-flash-lite` hold up for the compliance-assessment call quality-wise, or does
+  it need a stronger tier now that it's confirmed available? The original intent was "stronger
+  than the chat model" for accuracy; worth checking the swap didn't undercut that.
+- Is the 5-item council-approvals checklist missing anything a real demo address is likely to
+  trigger, now that it's been exercised against actual projects rather than designed in the
+  abstract?
 
 ## Collaboration note
 
-Default workflow this project has used: give code in chat for the user to paste in, don't use Edit/Write
-on app source directly unless explicitly asked to. That's been relaxed somewhat during this bug-fixing
-pass — once a fix is explained, a plain "do it"/"sure" is being treated as permission to make that specific
-edit directly, but it's still asked for per-change rather than assumed as a standing default.
+Default workflow this project has used: give code in chat for the user to paste in, don't use
+Edit/Write on app source directly unless explicitly asked. That default was explicitly
+overridden for this session ("write the code unless I ask you not to") — everything above was
+applied directly, not just explained. Treat that override as scoped to this session unless the
+user restates it next time; default back to dictating code until they do.
