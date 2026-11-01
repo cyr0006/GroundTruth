@@ -88,7 +88,11 @@ struct ProfileView: View {
                     } label: {
                         Label("FAQ & Help", systemImage: "questionmark.circle")
                     }
-                    Label("About GroundTruth", systemImage: "info.circle")
+                    NavigationLink {
+                        AboutView()
+                    } label: {
+                        Label("About GroundTruth", systemImage: "info.circle")
+                    }
                 }
 
                 Section {
