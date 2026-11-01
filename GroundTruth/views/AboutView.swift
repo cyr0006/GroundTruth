@@ -8,6 +8,12 @@
 import SwiftUI
 
 struct AboutView: View {
+    @AppStorage(AccentColorStore.storageKey) private var accentColorHex = AccentColorStore.defaultHex
+
+    private var accentColor: Color {
+        Color(hex: accentColorHex) ?? .blue
+    }
+
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
     }
@@ -21,7 +27,7 @@ struct AboutView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(width: 56, height: 56)
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(accentColor)
 
                         Text("GroundTruth")
                             .font(.title2)
@@ -91,7 +97,7 @@ struct AboutView: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .frame(width: 24)
-                .foregroundStyle(.blue)
+                .foregroundStyle(accentColor)
                 .padding(.top, 2)
 
             VStack(alignment: .leading, spacing: 2) {

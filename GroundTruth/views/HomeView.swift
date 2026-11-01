@@ -11,6 +11,7 @@ import FirebaseAuth
 struct HomeView: View {
     @EnvironmentObject private var projectStore: ProjectStore
     @EnvironmentObject private var authService: AuthService
+    @AppStorage(AccentColorStore.storageKey) private var accentColorHex = AccentColorStore.defaultHex
 
     @State private var isShowingNewProject = false
     @State private var selectedProjectForChat: Project?
@@ -52,6 +53,10 @@ struct HomeView: View {
         }
     }
 
+    private var accentColor: Color {
+        Color(hex: accentColorHex) ?? .blue
+    }
+
     //Sections
     private var welcomeHeader: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -73,7 +78,7 @@ struct HomeView: View {
                 Button {
                     isShowingNewProject = true
                 } label: {
-                    QuickActionButtonLabel(title: "New Project", systemImage: "plus.circle.fill", tint: .blue)
+                    QuickActionButtonLabel(title: "New Project", systemImage: "plus.circle.fill", tint: accentColor)
                 }
 
                 NavigationLink {
