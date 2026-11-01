@@ -281,38 +281,114 @@ struct ProjectDetailView: View {
 
     @ViewBuilder
     private func costEstimateSection(for project: Project) -> some View {
-        Section("Cost Estimate") {
-            switch costEstimator.estimate(for: project.costEstimateInputs) {
-            case .available(let low, let high):
-                LabeledContent("Estimate") {
-                    VStack(alignment: .trailing) {
-                        Text("\(low, format: .currency(code: "AUD")) – \(high, format: .currency(code: "AUD"))")
-                        Text("Preliminary")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Estimated cost \(low, format: .currency(code: "AUD")) to \(high, format: .currency(code: "AUD")), preliminary")
-                }
-                Button("Edit Project Scope") { isShowingCostEstimateSheet = true }
-            case .ruleOfThumb(let low, let high, let note):
-                LabeledContent("Estimate") {
-                    VStack(alignment: .trailing) {
-                        Text("\(low, format: .currency(code: "AUD")) – \(high, format: .currency(code: "AUD"))")
-                        Text(note)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.trailing)
-                    }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Estimated cost \(low, format: .currency(code: "AUD")) to \(high, format: .currency(code: "AUD")). \(note)")
-                }
-                Button("Edit Project Scope") { isShowingCostEstimateSheet = true }
-            case .unavailable:
-                Text("The project currently does not have enough information to provide an estimate. Add more project details, scope, or supporting documents to generate a cost estimate.")
+        let breakdown = costEstimator.breakdown(for: project.costEstimateInputs)
+
+        Section {
+            if project.costEstimateInputs == nil {
+                Text("Add the project's scope to generate a cost breakdown.")
                     .foregroundStyle(.secondary)
                 Button("Add Project Scope") { isShowingCostEstimateSheet = true }
+            } else {
+                costLineRow(title: "Construction", result: breakdown.construction)
+                costLineRow(title: "Building Permit", result: breakdown.buildingPermit)
+                costLineRow(
+                    title: "Planning Permit",
+                    result: breakdown.planningPermit,
+                    likelihood: breakdown.planningPermitLikelihood
+                )
+                costLineRow(title: "Council Fees", result: breakdown.council)
+                totalCostRow(for: breakdown)
+
+                Button("Edit Project Scope") { isShowingCostEstimateSheet = true }
             }
+        } header: {
+            Text("Cost Estimate")
+        } footer: {
+            if project.costEstimateInputs != nil {
+                Text("All figures are indicative only, not quotes. Confirm actual permit requirements and fees with your council.")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func costLineRow(title: String, result: CostEstimateResult, likelihood: PlanningPermitLikelihood? = nil) -> some View {
+        LabeledContent {
+            switch result {
+            case .available(let low, let high):
+                costRangeText(low: low, high: high)
+            case .ruleOfThumb(let low, let high, let note):
+                VStack(alignment: .trailing, spacing: 2) {
+                    costRangeText(low: low, high: high)
+                    Text(note)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                }
+            case .notApplicable:
+                Text("Not applicable")
+                    .foregroundStyle(.secondary)
+            case .unavailable:
+                Text("Not yet available")
+                    .foregroundStyle(.secondary)
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(title)
+                if let likelihood, likelihood != .notLikely {
+                    Text(likelihood.rawValue)
+                        .font(.caption2)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.orange.opacity(0.15), in: Capsule())
+                        .foregroundStyle(.orange)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func costRangeText(low: Double, high: Double) -> some View {
+        if low == high {
+            Text(low, format: .currency(code: "AUD"))
+        } else {
+            Text("\(low, format: .currency(code: "AUD")) – \(high, format: .currency(code: "AUD"))")
+                .accessibilityLabel("\(low, format: .currency(code: "AUD")) to \(high, format: .currency(code: "AUD"))")
+        }
+    }
+
+    @ViewBuilder
+    private func totalCostRow(for breakdown: CostBreakdown) -> some View {
+        let items = [breakdown.construction, breakdown.buildingPermit, breakdown.planningPermit, breakdown.council]
+        let lows = items.compactMap(Self.lowValue)
+        let highs = items.compactMap(Self.highValue)
+        let hasUnavailableItem = items.contains { if case .unavailable = $0 { return true }; return false }
+
+        if !lows.isEmpty {
+            LabeledContent("Estimated Total") {
+                VStack(alignment: .trailing, spacing: 2) {
+                    costRangeText(low: lows.reduce(0, +), high: highs.reduce(0, +))
+                    if hasUnavailableItem {
+                        Text("Excludes items marked \"Not yet available\" above.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .fontWeight(.semibold)
+        }
+    }
+
+    private static func lowValue(_ result: CostEstimateResult) -> Double? {
+        switch result {
+        case .available(let low, _), .ruleOfThumb(let low, _, _): return low
+        case .notApplicable, .unavailable: return nil
+        }
+    }
+
+    private static func highValue(_ result: CostEstimateResult) -> Double? {
+        switch result {
+        case .available(_, let high), .ruleOfThumb(_, let high, _): return high
+        case .notApplicable, .unavailable: return nil
         }
     }
 

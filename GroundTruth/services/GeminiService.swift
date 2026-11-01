@@ -21,6 +21,20 @@ enum GeminiService {
         )
     }
 
+    private static func costLine(_ label: String, _ result: CostEstimateResult) -> String {
+        switch result {
+        case .available(let low, let high):
+            return "- \(label): $\(Int(low)) - $\(Int(high))"
+        case .ruleOfThumb(let low, let high, let note):
+            let amount = low == high ? "$\(Int(low))" : "$\(Int(low)) - $\(Int(high))"
+            return "- \(label): \(amount) (\(note))"
+        case .notApplicable:
+            return "- \(label): not applicable"
+        case .unavailable:
+            return "- \(label): not enough information to estimate"
+        }
+    }
+
     private static func systemInstruction(for project: Project) async -> String {
         var lines = [
             instructionsPreamble(),
@@ -51,15 +65,14 @@ enum GeminiService {
             lines += project.documents.map { "- \($0.fileName)" }
         }
 
-        switch CostEstimatorService().estimate(for: project.costEstimateInputs) {
-        case .available(let low, let high):
+        if project.costEstimateInputs != nil {
+            let breakdown = CostEstimatorService().breakdown(for: project.costEstimateInputs)
             lines.append("")
-            lines.append("Estimated cost of works: $\(Int(low)) - $\(Int(high)) (model estimate, +/-30%, not a quote).")
-        case .ruleOfThumb(let low, let high, let note):
-            lines.append("")
-            lines.append("Estimated cost of works: $\(Int(low)) - $\(Int(high)) (rule of thumb, not a model estimate: \(note)).")
-        case .unavailable:
-            break
+            lines.append("Cost estimate (all figures indicative only, not quotes):")
+            lines.append(costLine("Construction", breakdown.construction))
+            lines.append(costLine("Building permit", breakdown.buildingPermit))
+            lines.append(costLine("Planning permit (\(breakdown.planningPermitLikelihood.rawValue))", breakdown.planningPermit))
+            lines.append(costLine("Council fees", breakdown.council))
         }
 
         if let practiceNote = RegulatoryExerptService.buildingPracticeNoteText() {
