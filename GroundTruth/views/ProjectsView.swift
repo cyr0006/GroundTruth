@@ -117,7 +117,7 @@ private struct ProjectRow: View {
                 Text(project.name)
                     .font(.headline)
                 Spacer()
-                StatusBadge(status: project.status)
+                StatusBadge(status: project.effectiveStatus)
             }
 
             Label(project.address, systemImage: "mappin.and.ellipse")
@@ -143,6 +143,7 @@ struct ProjectDetailView: View {
     @State private var newTaskTitle = ""
     @State private var newTaskDescription = ""
     @State private var newTaskDueDate: Date?
+    @State private var newTaskPhase: ProjectStatus = .planning
     @State private var isShowingDueDatePicker = false
     @State private var isAddingTask = false
     @State private var isShowingEditProject = false
@@ -164,7 +165,7 @@ struct ProjectDetailView: View {
                 List {
                     Section("Overview") {
                         LabeledContent("Status") {
-                            StatusBadge(status: project.status)
+                            StatusBadge(status: project.effectiveStatus)
                         }
                         LabeledContent("Address", value: project.address)
                         Text(project.projectDescription)
@@ -373,6 +374,13 @@ struct ProjectDetailView: View {
             TextField("Description (optional)", text: $newTaskDescription)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            Picker("Phase", selection: $newTaskPhase) {
+                ForEach(ProjectStatus.allCases) { phase in
+                    Text(phase.rawValue).tag(phase)
+                }
+            }
+            .pickerStyle(.segmented)
         }
     }
 
@@ -412,33 +420,39 @@ struct ProjectDetailView: View {
     }
 
     private func taskRow(_ task: ProjectTask, project: Project) -> some View {
-        Button {
-            toggleTask(task, project: project)
-        } label: {
-            Label {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(task.title)
-                        .foregroundStyle(.primary)
-                        .strikethrough(task.isCompleted)
+        HStack(alignment: .top, spacing: 8) {
+            Button {
+                toggleTask(task, project: project)
+            } label: {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(task.title)
+                            .foregroundStyle(.primary)
+                            .strikethrough(task.isCompleted)
 
-                    if !task.description.isEmpty {
-                        Text(task.description)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                        if !task.description.isEmpty {
+                            Text(task.description)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
 
-                    if let dueDate = task.dueDate {
-                        Text(dueDateLabel(dueDate, isCompleted: task.isCompleted))
-                            .font(.caption2)
-                            .foregroundStyle(dueDateColor(dueDate, isCompleted: task.isCompleted))
+                        if let dueDate = task.dueDate {
+                            Text(dueDateLabel(dueDate, isCompleted: task.isCompleted))
+                                .font(.caption2)
+                                .foregroundStyle(dueDateColor(dueDate, isCompleted: task.isCompleted))
+                        }
                     }
+                } icon: {
+                    Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(task.isCompleted ? Color.accentColor : .secondary)
                 }
-            } icon: {
-                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(task.isCompleted ? Color.accentColor : .secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+
+            phaseMenu(for: task, project: project)
         }
-        .buttonStyle(.plain)
         .swipeActions {
             Button(role: .destructive) {
                 deleteTask(task, project: project)
@@ -446,6 +460,32 @@ struct ProjectDetailView: View {
                 Label("Delete", systemImage: "trash")
             }
         }
+    }
+
+    private func phaseMenu(for task: ProjectTask, project: Project) -> some View {
+        Menu {
+            ForEach(ProjectStatus.allCases) { phase in
+                Button {
+                    setTaskPhase(task, phase: phase, project: project)
+                } label: {
+                    if phase == task.phase {
+                        Label(phase.rawValue, systemImage: "checkmark")
+                    } else {
+                        Text(phase.rawValue)
+                    }
+                }
+            }
+        } label: {
+            Text(task.phase.rawValue)
+                .font(.caption2)
+                .fontWeight(.medium)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Color(.tertiarySystemFill), in: Capsule())
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityLabel("Phase: \(task.phase.rawValue)")
+        .accessibilityHint("Double tap to change which roadmap phase this step belongs to.")
     }
 
     private func dueDateLabel(_ date: Date, isCompleted: Bool) -> String {
@@ -561,10 +601,11 @@ struct ProjectDetailView: View {
         let title = newTaskTitle
         let description = newTaskDescription
         let dueDate = newTaskDueDate
+        let phase = newTaskPhase
         Task {
             defer { isAddingTask = false }
             do {
-                try await projectStore.addTask(title: title, description: description, dueDate: dueDate, to: project)
+                try await projectStore.addTask(title: title, description: description, dueDate: dueDate, phase: phase, to: project)
                 newTaskTitle = ""
                 newTaskDescription = ""
                 newTaskDueDate = nil
@@ -579,6 +620,16 @@ struct ProjectDetailView: View {
         Task {
             do {
                 try await projectStore.setTaskCompleted(task, isCompleted: !task.isCompleted, in: project)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func setTaskPhase(_ task: ProjectTask, phase: ProjectStatus, project: Project) {
+        Task {
+            do {
+                try await projectStore.setTaskPhase(task, phase: phase, in: project)
             } catch {
                 errorMessage = error.localizedDescription
             }
@@ -807,10 +858,20 @@ private struct EditProjectView: View {
                     TextField("Project name", text: $name)
                     TextField("Description", text: $description, axis: .vertical)
                         .lineLimit(3...6)
-                    Picker("Status", selection: $status) {
-                        ForEach(ProjectStatus.allCases) { status in
-                            Text(status.rawValue).tag(status)
+
+                    if project.tasks.isEmpty {
+                        Picker("Status", selection: $status) {
+                            ForEach(ProjectStatus.allCases) { status in
+                                Text(status.rawValue).tag(status)
+                            }
                         }
+                    } else {
+                        LabeledContent("Status") {
+                            StatusBadge(status: project.effectiveStatus)
+                        }
+                        Text("Status updates automatically as you complete roadmap steps.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
 

@@ -347,7 +347,7 @@ private struct ProjectSummaryCard: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
 
-            StatusBadge(status: project.status)
+            StatusBadge(status: project.effectiveStatus)
 
             ProgressView(value: project.progress)
                 .tint(.accentColor)

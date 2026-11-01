@@ -27,7 +27,7 @@ enum GeminiService {
             "",
             "PROJECT DETAILS",
             "Name: \(project.name)",
-            "Status: \(project.status.rawValue)",
+            "Status: \(project.effectiveStatus.rawValue)",
             "Address: \(project.address)",
             "Description: \(project.projectDescription)",
             "Progress: \(project.tasksCompleted) of \(project.totalTasks) roadmap steps complete (\(Int(project.progress * 100))%)"
@@ -36,7 +36,7 @@ enum GeminiService {
         if !project.tasks.isEmpty {
             lines.append("")
             lines.append("Roadmap steps:")
-            lines += project.tasks.map { "- [\($0.isCompleted ? "x" : " ")] \($0.title)" }
+            lines += project.tasks.map { "- [\($0.isCompleted ? "x" : " ")] (\($0.phase.rawValue)) \($0.title)" }
         }
 
         if !project.notes.isEmpty {
