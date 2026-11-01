@@ -314,10 +314,28 @@ final class ProjectStore: ObservableObject{
         guard let projectId = project.id, !projectId.isEmpty else {
             throw AppError.projectNotFound
         }
-        
+
         let encoded = try Firestore.Encoder().encode(inputs)
         try await database.collection(Project.collectionName).document(projectId)
             .updateData(["costEstimateInputs": encoded])
+    }
+
+    /// Runs `PlanningPermitClassifierService` against `project`'s current scope and caches
+    /// the result on the project document. Callers should pass a `project` whose
+    /// `costEstimateInputs` already reflects the scope to classify (the cost-scope sheet
+    /// does this right after saving new inputs).
+    func classifyPlanningPermit(for project: Project) async throws {
+        guard let projectId = project.id, !projectId.isEmpty else {
+            throw AppError.projectNotFound
+        }
+
+        guard let classification = await PlanningPermitClassifierService.classify(project: project) else {
+            throw AppError.classificationFailed
+        }
+
+        let encoded = try Firestore.Encoder().encode(classification)
+        try await database.collection(Project.collectionName).document(projectId)
+            .updateData(["planningPermitClassification": encoded])
     }
 
     func deleteProject(_ project: Project) async throws {

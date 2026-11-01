@@ -149,6 +149,7 @@ struct ProjectDetailView: View {
     @State private var isShowingEditProject = false
     @State private var isShowingCostEstimateSheet = false
     @State private var isEditingTaskOrder = false
+    @State private var isClassifyingPlanningPermit = false
     @State private var errorMessage: String?
     
     private let costEstimator = CostEstimatorService()
@@ -281,7 +282,7 @@ struct ProjectDetailView: View {
 
     @ViewBuilder
     private func costEstimateSection(for project: Project) -> some View {
-        let breakdown = costEstimator.breakdown(for: project.costEstimateInputs)
+        let breakdown = costEstimator.breakdown(for: project)
 
         Section {
             if project.costEstimateInputs == nil {
@@ -294,10 +295,13 @@ struct ProjectDetailView: View {
                 costLineRow(
                     title: "Planning Permit",
                     result: breakdown.planningPermit,
-                    likelihood: breakdown.planningPermitLikelihood
+                    classification: breakdown.planningPermitClassification,
+                    unavailableLabel: "Not yet classified"
                 )
                 costLineRow(title: "Council Fees", result: breakdown.council)
                 totalCostRow(for: breakdown)
+
+                planningPermitClassifyRow(for: project)
 
                 Button("Edit Project Scope") { isShowingCostEstimateSheet = true }
             }
@@ -311,7 +315,12 @@ struct ProjectDetailView: View {
     }
 
     @ViewBuilder
-    private func costLineRow(title: String, result: CostEstimateResult, likelihood: PlanningPermitLikelihood? = nil) -> some View {
+    private func costLineRow(
+        title: String,
+        result: CostEstimateResult,
+        classification: PlanningPermitClassification? = nil,
+        unavailableLabel: String = "Not yet available"
+    ) -> some View {
         LabeledContent {
             switch result {
             case .available(let low, let high):
@@ -328,22 +337,41 @@ struct ProjectDetailView: View {
                 Text("Not applicable")
                     .foregroundStyle(.secondary)
             case .unavailable:
-                Text("Not yet available")
+                Text(unavailableLabel)
                     .foregroundStyle(.secondary)
             }
         } label: {
             HStack(spacing: 6) {
                 Text(title)
-                if let likelihood, likelihood != .notLikely {
-                    Text(likelihood.rawValue)
+                if let feeClass = classification?.feeClass {
+                    Text(feeClass.displayName)
                         .font(.caption2)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Color.orange.opacity(0.15), in: Capsule())
                         .foregroundStyle(.orange)
+                        .lineLimit(1)
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func planningPermitClassifyRow(for project: Project) -> some View {
+        Button {
+            classifyPlanningPermit(for: project)
+        } label: {
+            if isClassifyingPlanningPermit {
+                HStack {
+                    ProgressView()
+                    Text("Classifying...")
+                }
+            } else {
+                Text(project.planningPermitClassification == nil ? "Classify Planning Permit" : "Re-classify Planning Permit")
+            }
+        }
+        .disabled(isClassifyingPlanningPermit)
+        .font(.caption)
     }
 
     @ViewBuilder
@@ -632,6 +660,18 @@ struct ProjectDetailView: View {
                 let data = try Data(contentsOf: url)
                 let pending = PendingProjectDocument(fileName: url.lastPathComponent, data: data)
                 try await projectStore.addDocument(pending, to: project)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func classifyPlanningPermit(for project: Project) {
+        isClassifyingPlanningPermit = true
+        Task {
+            defer { isClassifyingPlanningPermit = false }
+            do {
+                try await projectStore.classifyPlanningPermit(for: project)
             } catch {
                 errorMessage = error.localizedDescription
             }

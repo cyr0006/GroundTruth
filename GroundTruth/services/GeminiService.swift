@@ -66,12 +66,12 @@ enum GeminiService {
         }
 
         if project.costEstimateInputs != nil {
-            let breakdown = CostEstimatorService().breakdown(for: project.costEstimateInputs)
+            let breakdown = CostEstimatorService().breakdown(for: project)
             lines.append("")
             lines.append("Cost estimate (all figures indicative only, not quotes):")
             lines.append(costLine("Construction", breakdown.construction))
             lines.append(costLine("Building permit", breakdown.buildingPermit))
-            lines.append(costLine("Planning permit (\(breakdown.planningPermitLikelihood.rawValue))", breakdown.planningPermit))
+            lines.append(costLine("Planning permit", breakdown.planningPermit))
             lines.append(costLine("Council fees", breakdown.council))
         }
 

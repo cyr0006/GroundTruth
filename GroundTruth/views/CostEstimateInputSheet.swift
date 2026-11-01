@@ -113,6 +113,16 @@ struct CostEstimateInputSheet: View {
                 )
                 try await projectStore.setCostEstimateInputs(inputs, for: project)
                 dismiss()
+
+                // Fire-and-forget: re-classify against the just-saved scope in the background
+                // rather than blocking dismissal on a network call. The cost screen shows
+                // "Not yet classified" / a loading state until this lands via the Firestore
+                // listener, same pattern as everything else in ProjectStore.
+                var scopedProject = project
+                scopedProject.costEstimateInputs = inputs
+                Task {
+                    try? await projectStore.classifyPlanningPermit(for: scopedProject)
+                }
             } catch {
                 errorMessage = error.localizedDescription
             }
