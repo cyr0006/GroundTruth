@@ -102,15 +102,13 @@ enum ProjectComplianceClassifierService {
                             description: "The single best-matching fee class id, or \"none\" if a fee class doesn't apply."
                         ),
                         "reasoning": .string(description: "One to two sentences, referencing the zone/overlay/clause if relevant.")
-                    ],
-                    requiredProperties: ["likelihood", "feeClass", "reasoning"]
+                    ]
                 ),
                 "buildingPermit": .object(
                     properties: [
                         "likelihood": .enumeration(values: likelihoodValues, description: "Likelihood a building permit is required."),
                         "reasoning": .string(description: "One to two sentences, referencing the Building Practice Note if relevant.")
-                    ],
-                    requiredProperties: ["likelihood", "reasoning"]
+                    ]
                 ),
                 "councilApprovals": .array(
                     items: .object(
@@ -118,13 +116,11 @@ enum ProjectComplianceClassifierService {
                             "type": .enumeration(values: CouncilApprovalType.allCases.map(\.rawValue), description: "Which council approval this entry is for."),
                             "likelihood": .enumeration(values: likelihoodValues, description: "Likelihood this specific approval is needed."),
                             "reasoning": .string(description: "One sentence explaining the decision for this specific approval.")
-                        ],
-                        requiredProperties: ["type", "likelihood", "reasoning"]
+                        ]
                     ),
                     description: "Exactly one entry for each of the \(CouncilApprovalType.allCases.count) council approval types listed in the prompt - never omit one."
                 )
-            ],
-            requiredProperties: ["planningPermit", "buildingPermit", "councilApprovals"]
+            ]
         )
     }
 
