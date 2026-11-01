@@ -51,19 +51,30 @@ enum PlanningPermitFeeClass: String, CaseIterable, Codable {
     }
 }
 
-/// The AI's classification result for one project's planning permit, cached on the project
-/// (see `Project.planningPermitClassification`) so the same project gets one stable answer
-/// instead of being re-judged - and potentially re-answered differently - every time it's
-/// viewed. Recomputed only when the project's scope changes (`CostEstimateInputSheet`) or the
-/// user explicitly asks for a refresh.
-struct PlanningPermitClassification: Codable, Hashable {
-    enum Requirement: String, Codable {
-        case yes, no, uncertain
+/// Shared 5-tier scale for "is this permit/approval needed," used across planning permit,
+/// building permit, and every council-approval checklist item. Deliberately qualitative
+/// rather than a numeric probability - a model stating "73% likely" isn't actually more
+/// calibrated than "likely," just dressed up to look more precise than it is.
+enum PermitLikelihood: String, Codable, CaseIterable {
+    case required
+    case likelyRequired = "likely_required"
+    case possiblyRequired = "possibly_required"
+    case unlikelyRequired = "unlikely_required"
+    case notRequired = "not_required"
+
+    var displayLabel: String {
+        switch self {
+        case .required: return "Required"
+        case .likelyRequired: return "Likely required"
+        case .possiblyRequired: return "Possibly required"
+        case .unlikelyRequired: return "Unlikely required"
+        case .notRequired: return "Not required"
+        }
     }
 
-    var requirement: Requirement
-    /// nil when `requirement == .no` - no permit needed means no fee class applies.
-    var feeClass: PlanningPermitFeeClass?
-    var reasoning: String
-    var classifiedAt: Date
+    /// Whether this tier is worth showing a fee for at all - "unlikely"/"not required" show
+    /// as not applicable instead, same treatment as a hard "no".
+    var impliesCostApplies: Bool {
+        self == .required || self == .likelyRequired || self == .possiblyRequired
+    }
 }

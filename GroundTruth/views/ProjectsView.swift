@@ -149,7 +149,7 @@ struct ProjectDetailView: View {
     @State private var isShowingEditProject = false
     @State private var isShowingCostEstimateSheet = false
     @State private var isEditingTaskOrder = false
-    @State private var isClassifyingPlanningPermit = false
+    @State private var isAssessingCompliance = false
     @State private var errorMessage: String?
     
     private let costEstimator = CostEstimatorService()
@@ -291,17 +291,21 @@ struct ProjectDetailView: View {
                 Button("Add Project Scope") { isShowingCostEstimateSheet = true }
             } else {
                 costLineRow(title: "Construction", result: breakdown.construction)
-                costLineRow(title: "Building Permit", result: breakdown.buildingPermit)
+                costLineRow(
+                    title: "Building Permit",
+                    result: breakdown.buildingPermit,
+                    badge: likelihoodBadge(breakdown.complianceAssessment?.buildingPermit.likelihood),
+                    unavailableLabel: "Not yet assessed"
+                )
                 costLineRow(
                     title: "Planning Permit",
                     result: breakdown.planningPermit,
-                    classification: breakdown.planningPermitClassification,
-                    unavailableLabel: "Not yet classified"
+                    badge: breakdown.complianceAssessment?.planningPermit.feeClass?.displayName,
+                    unavailableLabel: "Not yet assessed"
                 )
-                costLineRow(title: "Council Fees", result: breakdown.council)
                 totalCostRow(for: breakdown)
 
-                planningPermitClassifyRow(for: project)
+                complianceAssessmentActionRow(for: project)
 
                 Button("Edit Project Scope") { isShowingCostEstimateSheet = true }
             }
@@ -312,13 +316,25 @@ struct ProjectDetailView: View {
                 Text("All figures are indicative only, not quotes. Confirm actual permit requirements and fees with your council.")
             }
         }
+
+        if project.costEstimateInputs != nil {
+            Section {
+                ForEach(breakdown.councilApprovals) { item in
+                    councilApprovalRow(item, assessment: breakdown.complianceAssessment)
+                }
+            } header: {
+                Text("Council Approvals")
+            } footer: {
+                Text("A checklist of common Cardinia Shire approvals beyond planning/building permits - not every project needs any of these.")
+            }
+        }
     }
 
     @ViewBuilder
     private func costLineRow(
         title: String,
         result: CostEstimateResult,
-        classification: PlanningPermitClassification? = nil,
+        badge: String? = nil,
         unavailableLabel: String = "Not yet available"
     ) -> some View {
         LabeledContent {
@@ -343,8 +359,8 @@ struct ProjectDetailView: View {
         } label: {
             HStack(spacing: 6) {
                 Text(title)
-                if let feeClass = classification?.feeClass {
-                    Text(feeClass.displayName)
+                if let badge {
+                    Text(badge)
                         .font(.caption2)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
@@ -357,20 +373,42 @@ struct ProjectDetailView: View {
     }
 
     @ViewBuilder
-    private func planningPermitClassifyRow(for project: Project) -> some View {
+    private func councilApprovalRow(_ item: CouncilApprovalLineItem, assessment: ProjectComplianceAssessment?) -> some View {
+        let match = assessment?.councilApprovals.first { $0.type == item.type }
+        let unavailableLabel = (match?.likelihood.impliesCostApplies == true && item.type.fee == nil)
+            ? "Cost not published - confirm with council"
+            : "Not yet assessed"
+
+        costLineRow(
+            title: item.type.displayName,
+            result: item.result,
+            badge: likelihoodBadge(match?.likelihood),
+            unavailableLabel: unavailableLabel
+        )
+    }
+
+    // nil for tiers that already display as "Not applicable" via the row's own result - no
+    // need to say "Not required" twice in two different ways on the same row.
+    private func likelihoodBadge(_ likelihood: PermitLikelihood?) -> String? {
+        guard let likelihood, likelihood.impliesCostApplies else { return nil }
+        return likelihood.displayLabel
+    }
+
+    @ViewBuilder
+    private func complianceAssessmentActionRow(for project: Project) -> some View {
         Button {
-            classifyPlanningPermit(for: project)
+            assessCompliance(for: project)
         } label: {
-            if isClassifyingPlanningPermit {
+            if isAssessingCompliance {
                 HStack {
                     ProgressView()
-                    Text("Classifying...")
+                    Text("Assessing...")
                 }
             } else {
-                Text(project.planningPermitClassification == nil ? "Classify Planning Permit" : "Re-classify Planning Permit")
+                Text(project.complianceAssessment == nil ? "Assess Permits & Approvals" : "Re-assess Permits & Approvals")
             }
         }
-        .disabled(isClassifyingPlanningPermit)
+        .disabled(isAssessingCompliance)
         .font(.caption)
     }
 
@@ -386,7 +424,7 @@ struct ProjectDetailView: View {
 
     @ViewBuilder
     private func totalCostRow(for breakdown: CostBreakdown) -> some View {
-        let items = [breakdown.construction, breakdown.buildingPermit, breakdown.planningPermit, breakdown.council]
+        let items = [breakdown.construction, breakdown.buildingPermit, breakdown.planningPermit] + breakdown.councilApprovals.map(\.result)
         let lows = items.compactMap(Self.lowValue)
         let highs = items.compactMap(Self.highValue)
         let hasUnavailableItem = items.contains { if case .unavailable = $0 { return true }; return false }
@@ -396,7 +434,7 @@ struct ProjectDetailView: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     costRangeText(low: lows.reduce(0, +), high: highs.reduce(0, +))
                     if hasUnavailableItem {
-                        Text("Excludes items marked \"Not yet available\" above.")
+                        Text("Excludes any item above without a dollar figure yet.")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -666,12 +704,12 @@ struct ProjectDetailView: View {
         }
     }
 
-    private func classifyPlanningPermit(for project: Project) {
-        isClassifyingPlanningPermit = true
+    private func assessCompliance(for project: Project) {
+        isAssessingCompliance = true
         Task {
-            defer { isClassifyingPlanningPermit = false }
+            defer { isAssessingCompliance = false }
             do {
-                try await projectStore.classifyPlanningPermit(for: project)
+                try await projectStore.assessProjectCompliance(for: project)
             } catch {
                 errorMessage = error.localizedDescription
             }

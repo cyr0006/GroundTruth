@@ -108,9 +108,9 @@ struct Project: Identifiable,Hashable, Codable {
     var tasks: [ProjectTask]
     var chatMessages: [ChatMessage]
     var costEstimateInputs: CostEstimateInputs? = nil
-    /// Cached result of `PlanningPermitClassifierService`, keyed to the current
-    /// `costEstimateInputs` - nil means "not yet classified for the current scope."
-    var planningPermitClassification: PlanningPermitClassification? = nil
+    /// Cached result of `ProjectComplianceClassifierService`, keyed to the current
+    /// `costEstimateInputs` - nil means "not yet assessed for the current scope."
+    var complianceAssessment: ProjectComplianceAssessment? = nil
 
     var id: String?{
         projID ?? ""

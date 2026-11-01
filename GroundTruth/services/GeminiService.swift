@@ -72,7 +72,9 @@ enum GeminiService {
             lines.append(costLine("Construction", breakdown.construction))
             lines.append(costLine("Building permit", breakdown.buildingPermit))
             lines.append(costLine("Planning permit", breakdown.planningPermit))
-            lines.append(costLine("Council fees", breakdown.council))
+            for item in breakdown.councilApprovals {
+                lines.append(costLine(item.type.displayName, item.result))
+            }
         }
 
         if let practiceNote = RegulatoryExerptService.buildingPracticeNoteText() {
