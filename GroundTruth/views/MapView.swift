@@ -21,7 +21,7 @@ struct MapView: View {
     @State private var searchText = ""
     @State private var enabledZoneCategories: Set<PlanningStyle.ZoneCategory> = Set(PlanningStyle.ZoneCategory.allCases)
     @State private var enabledOverlayCategories: Set<PlanningStyle.OverlayCategory> = []
-    @State private var sheetDetent: PresentationDetent = .height(100)
+    @State private var sheetDetent: PresentationDetent = .height(140)
     @State private var selectedAddress: String?
     @State private var selectedCoordinate: CLLocationCoordinate2D?
     @State private var showPropertyProfile = false
@@ -67,6 +67,8 @@ struct MapView: View {
                         Marker(selectedAddress, systemImage: "mappin", coordinate: selectedCoordinate)
                             .tint(.red)
                     }
+
+                    UserAnnotation()
                 }
 
                 // MapCompass dropped: its default top-trailing position collided with the
@@ -214,6 +216,10 @@ struct MapView: View {
             .padding(.vertical, 8)
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityValue(isOn.wrappedValue ? "On" : "Off")
+        .accessibilityAddTraits(.isButton)
     }
 
     private func zoneCategoryBinding(for category: PlanningStyle.ZoneCategory) -> Binding<Bool> {

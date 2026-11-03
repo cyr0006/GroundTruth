@@ -170,7 +170,7 @@ final class ProjectStore: ObservableObject{
         ])
     }
 
-    func addTask(title: String, description: String = "", dueDate: Date? = nil, to project: Project) async throws {
+    func addTask(title: String, description: String = "", dueDate: Date? = nil, phase: ProjectStatus = .planning, to project: Project) async throws {
         guard let projectId = project.id, !projectId.isEmpty else {
             throw AppError.projectNotFound
         }
@@ -181,7 +181,7 @@ final class ProjectStore: ObservableObject{
         }
         let cleanedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let newTask = ProjectTask(id: UUID().uuidString, title: cleaned, isCompleted: false, dueDate: dueDate, description: cleanedDescription)
+        let newTask = ProjectTask(id: UUID().uuidString, title: cleaned, isCompleted: false, dueDate: dueDate, description: cleanedDescription, phase: phase)
         var updatedTasks = project.tasks
         updatedTasks.append(newTask)
         try await updateTasksField(updatedTasks, projectId: projectId)
@@ -209,6 +209,17 @@ final class ProjectStore: ObservableObject{
         if isCompleted {
             NotificationService.cancelReminder(taskId: task.id)
         }
+    }
+
+    func setTaskPhase(_ task: ProjectTask, phase: ProjectStatus, in project: Project) async throws {
+        guard let projectId = project.id, !projectId.isEmpty else {
+            throw AppError.projectNotFound
+        }
+
+        var updatedTasks = project.tasks
+        guard let index = updatedTasks.firstIndex(where: { $0.id == task.id }) else { return }
+        updatedTasks[index].phase = phase
+        try await updateTasksField(updatedTasks, projectId: projectId)
     }
 
     func moveTasks(in project: Project, fromOffsets source: IndexSet, toOffset destination: Int) async throws {
@@ -303,10 +314,28 @@ final class ProjectStore: ObservableObject{
         guard let projectId = project.id, !projectId.isEmpty else {
             throw AppError.projectNotFound
         }
-        
+
         let encoded = try Firestore.Encoder().encode(inputs)
         try await database.collection(Project.collectionName).document(projectId)
             .updateData(["costEstimateInputs": encoded])
+    }
+
+    /// Runs `ProjectComplianceClassifierService` against `project`'s current scope and caches
+    /// the result on the project document. Callers should pass a `project` whose
+    /// `costEstimateInputs` already reflects the scope to assess (the cost-scope sheet does
+    /// this right after saving new inputs).
+    func assessProjectCompliance(for project: Project) async throws {
+        guard let projectId = project.id, !projectId.isEmpty else {
+            throw AppError.projectNotFound
+        }
+
+        guard let assessment = await ProjectComplianceClassifierService.assess(project: project) else {
+            throw AppError.complianceAssessmentFailed
+        }
+
+        let encoded = try Firestore.Encoder().encode(assessment)
+        try await database.collection(Project.collectionName).document(projectId)
+            .updateData(["complianceAssessment": encoded])
     }
 
     func deleteProject(_ project: Project) async throws {

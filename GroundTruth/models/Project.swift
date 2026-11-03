@@ -50,11 +50,40 @@ struct ProjectTask: Identifiable, Hashable, Codable {
     var isCompleted: Bool
     var dueDate: Date? = nil
     var description: String = ""
+    /// Which roadmap phase this step belongs to — drives `Project.effectiveStatus`.
+    var phase: ProjectStatus = .planning
+
+    init(id: String, title: String, isCompleted: Bool, dueDate: Date? = nil, description: String = "", phase: ProjectStatus = .planning) {
+        self.id = id
+        self.title = title
+        self.isCompleted = isCompleted
+        self.dueDate = dueDate
+        self.description = description
+        self.phase = phase
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, isCompleted, dueDate, description, phase
+    }
+
+    // Custom decode so tasks saved before `description`/`phase` existed (missing
+    // those keys in Firestore) still decode instead of silently dropping the
+    // whole project — a synthesized Decodable would require every key present.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        isCompleted = try container.decode(Bool.self, forKey: .isCompleted)
+        dueDate = try container.decodeIfPresent(Date.self, forKey: .dueDate)
+        description = try container.decodeIfPresent(String.self, forKey: .description) ?? ""
+        phase = try container.decodeIfPresent(ProjectStatus.self, forKey: .phase) ?? .planning
+    }
 }
 
 struct CostEstimateInputs: Hashable, Codable{
     var floorAreaSqm: Double
     var projectType: String
+    var workSubtype: String? = nil
 }
 
 /// A file picked on-device but not yet uploaded — the input to `ProjectStore`'s
@@ -79,6 +108,9 @@ struct Project: Identifiable,Hashable, Codable {
     var tasks: [ProjectTask]
     var chatMessages: [ChatMessage]
     var costEstimateInputs: CostEstimateInputs? = nil
+    /// Cached result of `ProjectComplianceClassifierService`, keyed to the current
+    /// `costEstimateInputs` - nil means "not yet assessed for the current scope."
+    var complianceAssessment: ProjectComplianceAssessment? = nil
 
     var id: String?{
         projID ?? ""
@@ -91,6 +123,17 @@ struct Project: Identifiable,Hashable, Codable {
     var progress: Double {
         guard !tasks.isEmpty else { return 0 }
         return Double(tasksCompleted) / Double(totalTasks)
+    }
+
+    // The displayed status, derived from the roadmap rather than the stored
+    // `status` field, so it can't drift out of sync with the checklist. You're
+    // "stuck" in the earliest phase that still has an incomplete step; once every
+    // step is done, the project reads as Complete. `status` itself still matters
+    // as the starting point before any steps have a phase assigned to disagree with.
+    var effectiveStatus: ProjectStatus {
+        guard !tasks.isEmpty else { return status }
+        let incompletePhases = Set(tasks.filter { !$0.isCompleted }.map(\.phase))
+        return ProjectStatus.allCases.first { incompletePhases.contains($0) } ?? .complete
     }
 
     init(projID: String? = nil, ownerId: String, name: String, projectDescription: String, address: String, status: ProjectStatus, documents: [ProjectDocument] = [], notes: [ProjectNote] = [], tasks: [ProjectTask] = [], chatMessages: [ChatMessage] = [], costEstimateInputs: CostEstimateInputs? = nil) {
@@ -109,10 +152,11 @@ struct Project: Identifiable,Hashable, Codable {
 }
 
 extension Project {
-    /// Builds `count` sample tasks with the first `completed` marked done.
-    private static func sampleTasks(completed: Int, count: Int) -> [ProjectTask] {
+    /// Builds `count` sample tasks with the first `completed` marked done, all tagged
+    /// with `phase` so `effectiveStatus` matches the sample project's intended status.
+    private static func sampleTasks(completed: Int, count: Int, phase: ProjectStatus) -> [ProjectTask] {
         (0..<count).map { index in
-            ProjectTask(id: "sample-\(index)", title: "Sample step \(index + 1)", isCompleted: index < completed)
+            ProjectTask(id: "sample-\(index)", title: "Sample step \(index + 1)", isCompleted: index < completed, phase: phase)
         }
     }
 
@@ -123,7 +167,7 @@ extension Project {
             projectDescription: "New timber deck with pergola off the back of the house.",
             address: "12 Wattle Street, Camberwell VIC 3124",
             status: .permits,
-            tasks: sampleTasks(completed: 4, count: 10)
+            tasks: sampleTasks(completed: 4, count: 10, phase: .permits)
         ),
         Project(
             ownerId: "preview-user",
@@ -131,7 +175,7 @@ extension Project {
             projectDescription: "Secondary dwelling in the rear yard for extended family.",
             address: "8 Riverside Ave, Hawthorn VIC 3122",
             status: .planning,
-            tasks: sampleTasks(completed: 2, count: 14)
+            tasks: sampleTasks(completed: 2, count: 14, phase: .planning)
         ),
         Project(
             ownerId: "preview-user",
@@ -139,7 +183,7 @@ extension Project {
             projectDescription: "Internal renovation, no structural changes.",
             address: "21 Emerald Lake Rd, Emerald VIC 3782",
             status: .construction,
-            tasks: sampleTasks(completed: 9, count: 12)
+            tasks: sampleTasks(completed: 9, count: 12, phase: .construction)
         )
     ]
 }

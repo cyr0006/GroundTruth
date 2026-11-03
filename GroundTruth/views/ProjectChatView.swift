@@ -56,6 +56,17 @@ struct ProjectChatView: View {
                 }
             }
 
+            if viewModel.isPreparing {
+                HStack(spacing: 6) {
+                    ProgressView()
+                    Text("Preparing grounding...")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+            }
+
+
             Divider()
 
             HStack(alignment: .bottom, spacing: 8) {
@@ -70,7 +81,7 @@ struct ProjectChatView: View {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.title2)
                 }
-                .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSending)
+                .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSending || viewModel.isPreparing)
             }
             .padding()
         }
@@ -130,6 +141,7 @@ struct ProjectChatView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
+        .accessibilityElement(children: .combine)
     }
 
     private func formatted(_ text: String) -> AttributedString {

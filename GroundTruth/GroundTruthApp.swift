@@ -39,10 +39,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
 @main
 struct GroundTruthApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
-    
+    @AppStorage(AccentColorStore.storageKey) private var accentColorHex = AccentColorStore.defaultHex
+
     var body: some Scene {
         WindowGroup {
             RootView()
+                .tint(Color(hex: accentColorHex) ?? AccentColorStore.defaultColor)
         }
     }
 }

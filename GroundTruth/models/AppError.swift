@@ -15,12 +15,14 @@ enum AppError: LocalizedError {
     case invalidForm(String)
     case projectNotFound
     case notSignedIn
+    case complianceAssessmentFailed
 
     var errorDescription: String? {
         switch self {
         case .invalidForm(let message): message
         case .projectNotFound: "This project no longer exists."
         case .notSignedIn: "You need to be signed in to do that."
+        case .complianceAssessmentFailed: "Couldn't assess permits and approvals right now. Try again shortly."
         }
     }
     

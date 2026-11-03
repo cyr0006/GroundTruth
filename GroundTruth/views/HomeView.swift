@@ -7,10 +7,12 @@
 
 import SwiftUI
 import FirebaseAuth
+import Charts
 
 struct HomeView: View {
     @EnvironmentObject private var projectStore: ProjectStore
     @EnvironmentObject private var authService: AuthService
+    @AppStorage(AccentColorStore.storageKey) private var accentColorHex = AccentColorStore.defaultHex
 
     @State private var isShowingNewProject = false
     @State private var selectedProjectForChat: Project?
@@ -26,6 +28,8 @@ struct HomeView: View {
                     quickActions
 
                     upcomingDeadlinesSection
+
+                    deadlinesTrendSection
 
                     activeProjectsSection
 
@@ -52,6 +56,10 @@ struct HomeView: View {
         }
     }
 
+    private var accentColor: Color {
+        Color(hex: accentColorHex) ?? AccentColorStore.defaultColor
+    }
+
     //Sections
     private var welcomeHeader: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -73,7 +81,7 @@ struct HomeView: View {
                 Button {
                     isShowingNewProject = true
                 } label: {
-                    QuickActionButtonLabel(title: "New Project", systemImage: "plus.circle.fill", tint: .blue)
+                    QuickActionButtonLabel(title: "New Project", systemImage: "plus.circle.fill", tint: accentColor)
                 }
 
                 NavigationLink {
@@ -156,6 +164,82 @@ struct HomeView: View {
         .padding(.vertical, 6)
     }
 
+    // Buckets every incomplete task's due date into the week it falls in, over the
+    // next 8 weeks, so the trend line shows real deadline pressure rather than a
+    // fabricated series. Weeks with no deadlines still get a zero-count point —
+    // dropping them would make the line connect across gaps and misrepresent the gap as smooth.
+    private var deadlinesByWeek: [DeadlineWeekPoint] {
+        let calendar = Calendar.current
+        guard let currentWeekStart = calendar.dateInterval(of: .weekOfYear, for: Date())?.start else {
+            return []
+        }
+
+        let weekCount = 8
+        var buckets = (0..<weekCount).map { offset in
+            DeadlineWeekPoint(
+                weekStart: calendar.date(byAdding: .weekOfYear, value: offset, to: currentWeekStart) ?? currentWeekStart,
+                count: 0
+            )
+        }
+
+        for entry in upcomingDeadlines {
+            guard let dueDate = entry.task.dueDate,
+                  let weekStart = calendar.dateInterval(of: .weekOfYear, for: dueDate)?.start,
+                  let index = buckets.firstIndex(where: { $0.weekStart == weekStart }) else { continue }
+            buckets[index].count += 1
+        }
+
+        return buckets
+    }
+
+    @ViewBuilder
+    private var deadlinesTrendSection: some View {
+        let points = deadlinesByWeek
+
+        if points.contains(where: { $0.count > 0 }) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Deadlines Over the Next 8 Weeks")
+                    .font(.headline)
+
+                Chart(points) { point in
+                    AreaMark(
+                        x: .value("Week", point.weekStart, unit: .weekOfYear),
+                        y: .value("Deadlines", point.count)
+                    )
+                    .foregroundStyle(accentColor.opacity(0.15))
+
+                    LineMark(
+                        x: .value("Week", point.weekStart, unit: .weekOfYear),
+                        y: .value("Deadlines", point.count)
+                    )
+                    .foregroundStyle(accentColor)
+                    .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
+
+                    if point.count > 0 {
+                        PointMark(
+                            x: .value("Week", point.weekStart, unit: .weekOfYear),
+                            y: .value("Deadlines", point.count)
+                        )
+                        .foregroundStyle(accentColor)
+                        .symbolSize(60)
+                    }
+                }
+                .frame(height: 140)
+                .chartYAxis {
+                    AxisMarks(position: .leading)
+                }
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: 4)) { _ in
+                        AxisGridLine()
+                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                    }
+                }
+                .padding()
+                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+            }
+        }
+    }
+
     private var activeProjectsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -221,6 +305,12 @@ private struct DeadlineEntry: Identifiable {
     var id: String { task.id }
 }
 
+private struct DeadlineWeekPoint: Identifiable {
+    let weekStart: Date
+    var count: Int
+    var id: Date { weekStart }
+}
+
 private struct QuickActionButtonLabel: View {
     let title: String
     let systemImage: String
@@ -257,7 +347,7 @@ private struct ProjectSummaryCard: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
 
-            StatusBadge(status: project.status)
+            StatusBadge(status: project.effectiveStatus)
 
             ProgressView(value: project.progress)
                 .tint(.accentColor)

@@ -1,19 +1,22 @@
 //
 //  ProjectChatViewModel.swift
 //  GroundTruth
+//  Created by Aryan Cyrus  on 29/10/2026.
 //
 
-import Foundation
+
 import FirebaseAILogic
+import Foundation
 internal import Combine
 
 @MainActor
 final class ProjectChatViewModel: ObservableObject {
     @Published private(set) var messages: [ChatMessage]
     @Published private(set) var isSending = false
+    @Published private(set) var isPreparing = true
     @Published var errorMessage: String?
 
-    private let chat: Chat
+    private var chat: Chat?
     private let project: Project
     private let projectStore: ProjectStore
 
@@ -21,12 +24,16 @@ final class ProjectChatViewModel: ObservableObject {
         self.project = project
         self.projectStore = projectStore
         self.messages = project.chatMessages
-        chat = GeminiService.chatModel(for: project).startChat()
+
+        Task {
+            chat = await GeminiService.chatModel(for: project).startChat()
+            isPreparing = false
+        }
     }
 
     func send(_ text: String) {
         let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleaned.isEmpty, !isSending else { return }
+        guard !cleaned.isEmpty, !isSending, !isPreparing, let chat else { return }
 
         messages.append(ChatMessage(role: .user, text: cleaned))
         isSending = true

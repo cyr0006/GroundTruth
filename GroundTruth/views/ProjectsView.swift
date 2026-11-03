@@ -117,7 +117,7 @@ private struct ProjectRow: View {
                 Text(project.name)
                     .font(.headline)
                 Spacer()
-                StatusBadge(status: project.status)
+                StatusBadge(status: project.effectiveStatus)
             }
 
             Label(project.address, systemImage: "mappin.and.ellipse")
@@ -143,11 +143,13 @@ struct ProjectDetailView: View {
     @State private var newTaskTitle = ""
     @State private var newTaskDescription = ""
     @State private var newTaskDueDate: Date?
+    @State private var newTaskPhase: ProjectStatus = .planning
     @State private var isShowingDueDatePicker = false
     @State private var isAddingTask = false
     @State private var isShowingEditProject = false
     @State private var isShowingCostEstimateSheet = false
     @State private var isEditingTaskOrder = false
+    @State private var isAssessingCompliance = false
     @State private var errorMessage: String?
     
     private let costEstimator = CostEstimatorService()
@@ -164,7 +166,7 @@ struct ProjectDetailView: View {
                 List {
                     Section("Overview") {
                         LabeledContent("Status") {
-                            StatusBadge(status: project.status)
+                            StatusBadge(status: project.effectiveStatus)
                         }
                         LabeledContent("Address", value: project.address)
                         Text(project.projectDescription)
@@ -280,23 +282,179 @@ struct ProjectDetailView: View {
 
     @ViewBuilder
     private func costEstimateSection(for project: Project) -> some View {
-        Section("Cost Estimate") {
-            switch costEstimator.estimate(for: project.costEstimateInputs) {
+        let breakdown = costEstimator.breakdown(for: project)
+
+        Section {
+            if project.costEstimateInputs == nil {
+                Text("Add the project's scope to generate a cost breakdown.")
+                    .foregroundStyle(.secondary)
+                Button("Add Project Scope") { isShowingCostEstimateSheet = true }
+            } else {
+                costLineRow(title: "Construction", result: breakdown.construction)
+                costLineRow(
+                    title: "Building Permit",
+                    result: breakdown.buildingPermit,
+                    badge: likelihoodBadge(breakdown.complianceAssessment?.buildingPermit.likelihood),
+                    unavailableLabel: "Not yet assessed"
+                )
+                costLineRow(
+                    title: "Planning Permit",
+                    result: breakdown.planningPermit,
+                    badge: breakdown.complianceAssessment?.planningPermit.feeClass?.displayName,
+                    unavailableLabel: "Not yet assessed"
+                )
+                totalCostRow(for: breakdown)
+
+                complianceAssessmentActionRow(for: project)
+
+                Button("Edit Project Scope") { isShowingCostEstimateSheet = true }
+            }
+        } header: {
+            Text("Cost Estimate")
+        } footer: {
+            if project.costEstimateInputs != nil {
+                Text("All figures are indicative only, not quotes. Confirm actual permit requirements and fees with your council.")
+            }
+        }
+
+        if project.costEstimateInputs != nil {
+            Section {
+                ForEach(breakdown.councilApprovals) { item in
+                    councilApprovalRow(item, assessment: breakdown.complianceAssessment)
+                }
+            } header: {
+                Text("Council Approvals")
+            } footer: {
+                Text("A checklist of common Cardinia Shire approvals beyond planning/building permits - not every project needs any of these.")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func costLineRow(
+        title: String,
+        result: CostEstimateResult,
+        badge: String? = nil,
+        unavailableLabel: String = "Not yet available"
+    ) -> some View {
+        LabeledContent {
+            switch result {
             case .available(let low, let high):
-                LabeledContent("Estimate") {
-                    VStack(alignment: .trailing) {
-                        Text("\(low, format: .currency(code: "AUD")) – \(high, format: .currency(code: "AUD"))")
-                        Text("Preliminary")
-                            .font(.caption)
+                costRangeText(low: low, high: high)
+            case .ruleOfThumb(let low, let high, let note):
+                VStack(alignment: .trailing, spacing: 2) {
+                    costRangeText(low: low, high: high)
+                    Text(note)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                }
+            case .notApplicable:
+                Text("Not applicable")
+                    .foregroundStyle(.secondary)
+            case .unavailable:
+                Text(unavailableLabel)
+                    .foregroundStyle(.secondary)
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(title)
+                if let badge {
+                    Text(badge)
+                        .font(.caption2)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.orange.opacity(0.15), in: Capsule())
+                        .foregroundStyle(.orange)
+                        .lineLimit(1)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func councilApprovalRow(_ item: CouncilApprovalLineItem, assessment: ProjectComplianceAssessment?) -> some View {
+        let match = assessment?.councilApprovals.first { $0.type == item.type }
+        let unavailableLabel = (match?.likelihood.impliesCostApplies == true && item.type.fee == nil)
+            ? "Cost not published - confirm with council"
+            : "Not yet assessed"
+
+        costLineRow(
+            title: item.type.displayName,
+            result: item.result,
+            badge: likelihoodBadge(match?.likelihood),
+            unavailableLabel: unavailableLabel
+        )
+    }
+
+    // nil for tiers that already display as "Not applicable" via the row's own result - no
+    // need to say "Not required" twice in two different ways on the same row.
+    private func likelihoodBadge(_ likelihood: PermitLikelihood?) -> String? {
+        guard let likelihood, likelihood.impliesCostApplies else { return nil }
+        return likelihood.displayLabel
+    }
+
+    @ViewBuilder
+    private func complianceAssessmentActionRow(for project: Project) -> some View {
+        Button {
+            assessCompliance(for: project)
+        } label: {
+            if isAssessingCompliance {
+                HStack {
+                    ProgressView()
+                    Text("Assessing...")
+                }
+            } else {
+                Text(project.complianceAssessment == nil ? "Assess Permits & Approvals" : "Re-assess Permits & Approvals")
+            }
+        }
+        .disabled(isAssessingCompliance)
+        .font(.caption)
+    }
+
+    @ViewBuilder
+    private func costRangeText(low: Double, high: Double) -> some View {
+        if low == high {
+            Text(low, format: .currency(code: "AUD"))
+        } else {
+            Text("\(low, format: .currency(code: "AUD")) – \(high, format: .currency(code: "AUD"))")
+                .accessibilityLabel("\(low, format: .currency(code: "AUD")) to \(high, format: .currency(code: "AUD"))")
+        }
+    }
+
+    @ViewBuilder
+    private func totalCostRow(for breakdown: CostBreakdown) -> some View {
+        let items = [breakdown.construction, breakdown.buildingPermit, breakdown.planningPermit] + breakdown.councilApprovals.map(\.result)
+        let lows = items.compactMap(Self.lowValue)
+        let highs = items.compactMap(Self.highValue)
+        let hasUnavailableItem = items.contains { if case .unavailable = $0 { return true }; return false }
+
+        if !lows.isEmpty {
+            LabeledContent("Estimated Total") {
+                VStack(alignment: .trailing, spacing: 2) {
+                    costRangeText(low: lows.reduce(0, +), high: highs.reduce(0, +))
+                    if hasUnavailableItem {
+                        Text("Excludes any item above without a dollar figure yet.")
+                            .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
                 }
-                Button("Edit Project Scope") { isShowingCostEstimateSheet = true }
-            case .unavailable:
-                Text("The project currently does not have enough information to provide an estimate. Add more project details, scope, or supporting documents to generate a cost estimate.")
-                    .foregroundStyle(.secondary)
-                Button("Add Project Scope") { isShowingCostEstimateSheet = true }
             }
+            .fontWeight(.semibold)
+        }
+    }
+
+    private static func lowValue(_ result: CostEstimateResult) -> Double? {
+        switch result {
+        case .available(let low, _), .ruleOfThumb(let low, _, _): return low
+        case .notApplicable, .unavailable: return nil
+        }
+    }
+
+    private static func highValue(_ result: CostEstimateResult) -> Double? {
+        switch result {
+        case .available(_, let high), .ruleOfThumb(_, let high, _): return high
+        case .notApplicable, .unavailable: return nil
         }
     }
 
@@ -358,6 +516,13 @@ struct ProjectDetailView: View {
             TextField("Description (optional)", text: $newTaskDescription)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            Picker("Phase", selection: $newTaskPhase) {
+                ForEach(ProjectStatus.allCases) { phase in
+                    Text(phase.rawValue).tag(phase)
+                }
+            }
+            .pickerStyle(.segmented)
         }
     }
 
@@ -397,33 +562,39 @@ struct ProjectDetailView: View {
     }
 
     private func taskRow(_ task: ProjectTask, project: Project) -> some View {
-        Button {
-            toggleTask(task, project: project)
-        } label: {
-            Label {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(task.title)
-                        .foregroundStyle(.primary)
-                        .strikethrough(task.isCompleted)
+        HStack(alignment: .top, spacing: 8) {
+            Button {
+                toggleTask(task, project: project)
+            } label: {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(task.title)
+                            .foregroundStyle(.primary)
+                            .strikethrough(task.isCompleted)
 
-                    if !task.description.isEmpty {
-                        Text(task.description)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                        if !task.description.isEmpty {
+                            Text(task.description)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
 
-                    if let dueDate = task.dueDate {
-                        Text(dueDateLabel(dueDate, isCompleted: task.isCompleted))
-                            .font(.caption2)
-                            .foregroundStyle(dueDateColor(dueDate, isCompleted: task.isCompleted))
+                        if let dueDate = task.dueDate {
+                            Text(dueDateLabel(dueDate, isCompleted: task.isCompleted))
+                                .font(.caption2)
+                                .foregroundStyle(dueDateColor(dueDate, isCompleted: task.isCompleted))
+                        }
                     }
+                } icon: {
+                    Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(task.isCompleted ? Color.accentColor : .secondary)
                 }
-            } icon: {
-                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(task.isCompleted ? Color.accentColor : .secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+
+            phaseMenu(for: task, project: project)
         }
-        .buttonStyle(.plain)
         .swipeActions {
             Button(role: .destructive) {
                 deleteTask(task, project: project)
@@ -431,6 +602,32 @@ struct ProjectDetailView: View {
                 Label("Delete", systemImage: "trash")
             }
         }
+    }
+
+    private func phaseMenu(for task: ProjectTask, project: Project) -> some View {
+        Menu {
+            ForEach(ProjectStatus.allCases) { phase in
+                Button {
+                    setTaskPhase(task, phase: phase, project: project)
+                } label: {
+                    if phase == task.phase {
+                        Label(phase.rawValue, systemImage: "checkmark")
+                    } else {
+                        Text(phase.rawValue)
+                    }
+                }
+            }
+        } label: {
+            Text(task.phase.rawValue)
+                .font(.caption2)
+                .fontWeight(.medium)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Color(.tertiarySystemFill), in: Capsule())
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityLabel("Phase: \(task.phase.rawValue)")
+        .accessibilityHint("Double tap to change which roadmap phase this step belongs to.")
     }
 
     private func dueDateLabel(_ date: Date, isCompleted: Bool) -> String {
@@ -507,6 +704,18 @@ struct ProjectDetailView: View {
         }
     }
 
+    private func assessCompliance(for project: Project) {
+        isAssessingCompliance = true
+        Task {
+            defer { isAssessingCompliance = false }
+            do {
+                try await projectStore.assessProjectCompliance(for: project)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
     private func addNote(to project: Project) {
         isAddingNote = true
         let text = newNoteText
@@ -546,10 +755,11 @@ struct ProjectDetailView: View {
         let title = newTaskTitle
         let description = newTaskDescription
         let dueDate = newTaskDueDate
+        let phase = newTaskPhase
         Task {
             defer { isAddingTask = false }
             do {
-                try await projectStore.addTask(title: title, description: description, dueDate: dueDate, to: project)
+                try await projectStore.addTask(title: title, description: description, dueDate: dueDate, phase: phase, to: project)
                 newTaskTitle = ""
                 newTaskDescription = ""
                 newTaskDueDate = nil
@@ -564,6 +774,16 @@ struct ProjectDetailView: View {
         Task {
             do {
                 try await projectStore.setTaskCompleted(task, isCompleted: !task.isCompleted, in: project)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func setTaskPhase(_ task: ProjectTask, phase: ProjectStatus, project: Project) {
+        Task {
+            do {
+                try await projectStore.setTaskPhase(task, phase: phase, in: project)
             } catch {
                 errorMessage = error.localizedDescription
             }
@@ -792,10 +1012,20 @@ private struct EditProjectView: View {
                     TextField("Project name", text: $name)
                     TextField("Description", text: $description, axis: .vertical)
                         .lineLimit(3...6)
-                    Picker("Status", selection: $status) {
-                        ForEach(ProjectStatus.allCases) { status in
-                            Text(status.rawValue).tag(status)
+
+                    if project.tasks.isEmpty {
+                        Picker("Status", selection: $status) {
+                            ForEach(ProjectStatus.allCases) { status in
+                                Text(status.rawValue).tag(status)
+                            }
                         }
+                    } else {
+                        LabeledContent("Status") {
+                            StatusBadge(status: project.effectiveStatus)
+                        }
+                        Text("Status updates automatically as you complete roadmap steps.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
 
